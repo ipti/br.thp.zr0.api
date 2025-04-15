@@ -1,0 +1,55 @@
+
+services:
+  api-prod:
+    labels:
+      - "treafik.enable=true"
+    container_name: zr0-api-prod
+    image: tag-api-prod:3.0.0
+    build:
+      context: .
+      target: production
+      dockerfile: ./Dockerfile
+    command: npm run start:prod
+    environment:
+      APP_NAME: zr0-api
+      NODE_ENV: production
+    ports:
+      - 3000:3000
+    networks:
+      - zr0-network
+    volumes:
+      # - .:/home/api
+      - /home/api/node_modules
+    restart: unless-stopped
+
+  db:
+    image: mariadb
+    container_name: mariadb
+    restart: always
+    command: --max_allowed_packet=32505856  --memlock=1
+    ports:
+      - 3306:3306
+    environment:
+      MARIADB_ROOT_USER: root
+      MARIADB_ROOT_PASSWORD: root
+    volumes:
+      - ./db/dump.sql:/docker-entrypoint-initdb.d/dump.sql
+    networks:
+      - zr0-network
+
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8088:8080
+    networks:
+      - zr0-network
+
+networks:
+  zr0-network:
+    driver: bridge
+
+volumes:
+  db-volume:
+  mariadb_data:
+    driver: local

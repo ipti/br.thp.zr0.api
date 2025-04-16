@@ -18,7 +18,7 @@ model users {
   id        Int      @id @default(autoincrement())
   email     String   @unique
   username  String   @unique
-  role      Role     @default(USER)
+  role      Role     @default(CUSTOMER)
   name      String   @db.VarChar(150)
   password  String   @db.VarChar(60)
   active    Boolean  @default(true)
@@ -27,7 +27,7 @@ model users {
 }
 
 enum Role {
-  USER
-  MANAGER
+  CUSTOMER
+  SELLER
   ADMIN
 }

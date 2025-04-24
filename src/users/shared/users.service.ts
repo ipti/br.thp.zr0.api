@@ -27,6 +27,7 @@ export class UsersService {
 
       return createdUser;
     } catch (err) {
+      console.log(err)
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
   }

@@ -24,7 +24,7 @@ export class CreateUserDto {
   username: string;
 
   @IsOptional()
-  @Length(5, 64)
+  @Length(5, 128)
   @ApiProperty()
   email: string;
 

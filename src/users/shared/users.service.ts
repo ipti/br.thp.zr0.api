@@ -1,10 +1,10 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { isEmpty } from 'class-validator';
 import * as bcrypt from 'bcrypt';
+import { isEmpty } from 'class-validator';
+import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateUserDto } from '../dto/create-user.dto';
 import { QueryUserDto } from '../dto/query-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class UsersService {
@@ -27,7 +27,7 @@ export class UsersService {
 
       return createdUser;
     } catch (err) {
-      console.log(err)
+      console.log(err);
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
   }
@@ -92,13 +92,25 @@ export class UsersService {
     return user;
   }
 
+  async findVerifyEmail(id: number) {
+    const user = await this.prisma.users.findFirst({
+      where: { id: id },
+    });
+
+    if (!user?.verify_email) {
+      throw new HttpException('Unverified email', HttpStatus.UNAUTHORIZED);
+    }
+
+    return user;
+  }
+
   async remove(id: string) {
     try {
       const user = await this.findOne(+id);
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }
-      
+
       await this.prisma.users.delete({
         where: { id: user.id },
       });

@@ -7,7 +7,7 @@ export class AuthService {
   constructor(
     private usersService: UsersService,
     private jwtStrategy: JwtStrategy,
-  ) { }
+  ) {}
 
   async validateUser(userUsername: string, userPassword: string) {
     const user = await this.usersService.findOneByEmail(userUsername);
@@ -15,7 +15,6 @@ export class AuthService {
     if (!user) {
       throw new HttpException('Usuário não encontrado', HttpStatus.NOT_FOUND);
     }
-
 
     if (
       user &&
@@ -31,7 +30,18 @@ export class AuthService {
   async login(user: any) {
     const payload = { email: user.email, sub: user.id };
 
-    console.log(payload);
+    const userRegistered = await this.usersService.findOneByEmail(user.email);
+
+    await this.usersService.findVerifyEmail(user.id);
+
+    return {
+      access_token: this.jwtStrategy.generateSignToken(payload),
+      userRegistered,
+    };
+  }
+
+  async generateToken(user: any) {
+    const payload = { email: user.email, sub: user.id };
 
     const userRegistered = await this.usersService.findOneByEmail(user.email);
 

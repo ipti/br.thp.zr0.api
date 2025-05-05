@@ -7,6 +7,7 @@ CREATE TABLE `users` (
     `name` VARCHAR(150) NOT NULL,
     `password` VARCHAR(60) NOT NULL,
     `active` BOOLEAN NOT NULL DEFAULT true,
+    `verify_email` BOOLEAN NOT NULL DEFAULT false,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 

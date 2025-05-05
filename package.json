@@ -6,9 +6,10 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "tsc --build --clean && tsc && npm run copy:templates",
+    "copy:templates": "copyfiles -u 4 src/utils/middleware/resources/*.hbs dist/utils/middleware/resources/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "start": "nest start",
+    "start": "npm run build && npm run start:migrate:prod",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main.js --max-old-space-size=256",

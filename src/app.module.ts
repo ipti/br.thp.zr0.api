@@ -8,6 +8,7 @@ import { ConfigModule } from '@nestjs/config';
 import { JwtMiddleware } from './utils/middleware/jwt.middleware';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { BFFModule } from './bff/bff.module';
+import { PrtoductModule } from './product/product.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { BFFModule } from './bff/bff.module';
     UsersModule,
     AuthModule,
     BFFModule,
+    PrtoductModule,
     PrismaModule,
   ],
   controllers: [AppController],

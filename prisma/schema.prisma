@@ -15,16 +15,82 @@ datasource db {
 }
 
 model users {
-  id        Int      @id @default(autoincrement())
-  email     String   @unique
-  username  String?   @unique
-  role      Role     @default(CUSTOMER)
-  name      String   @db.VarChar(150)
-  password  String   @db.VarChar(60)
-  active    Boolean  @default(true)
-  verify_email Boolean @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                           Int                            @id @default(autoincrement())
+  email                        String                         @unique
+  username                     String?                        @unique
+  role                         Role                           @default(CUSTOMER)
+  name                         String                         @db.VarChar(150)
+  password                     String                         @db.VarChar(60)
+  active                       Boolean                        @default(true)
+  verify_email                 Boolean                        @default(false)
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
+  transformation_workshop_user transformation_workshop_user[]
+}
+
+model transformation_workshop {
+  id                           Int                            @id @default(autoincrement())
+  name                         String
+  cnpj                         String?
+  location                     String?
+  createdAt                    DateTime                       @default(now())
+  updatedAt                    DateTime                       @updatedAt
+  transformation_workshop_user transformation_workshop_user[]
+  production                   production[]
+}
+
+model category {
+  id        Int       @id @default(autoincrement())
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  product   product[]
+}
+
+model transformation_workshop_user {
+  id                         Int                     @id @default(autoincrement())
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+  user_fk                    Int
+  users                      users                   @relation(fields: [user_fk], references: [id])
+  transformation_workshop_fk Int
+  transformation_workshop    transformation_workshop @relation(fields: [transformation_workshop_fk], references: [id])
+}
+
+model product {
+  id             Int              @id @default(autoincrement())
+  name           String
+  description    String
+  price          Int?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  category_fk    Int
+  category       category         @relation(fields: [category_fk], references: [id])
+  workshop_stock workshop_stock[]
+  production     production[]
+}
+
+model workshop_stock {
+  id         Int      @id @default(autoincrement())
+  product_fk Int
+  product    product  @relation(fields: [product_fk], references: [id])
+  quantity   Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model production {
+  id                         Int                     @id @default(autoincrement())
+  product_fk                 Int
+  product                    product                 @relation(fields: [product_fk], references: [id])
+  transformation_workshop_fk Int
+  transformation_workshop    transformation_workshop @relation(fields: [transformation_workshop_fk], references: [id])
+  quantity                   Int
+  date_start                 DateTime?
+  date_end                   DateTime?
+  status                     String?
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
 }
 
 enum Role {

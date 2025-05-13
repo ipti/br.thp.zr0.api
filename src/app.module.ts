@@ -9,6 +9,7 @@ import { JwtMiddleware } from './utils/middleware/jwt.middleware';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { BFFModule } from './bff/bff.module';
 import { PrtoductModule } from './product/product.module';
+import { CategoryModule } from './category/category.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { PrtoductModule } from './product/product.module';
     BFFModule,
     PrtoductModule,
     PrismaModule,
+    CategoryModule,
   ],
   controllers: [AppController],
   providers: [AppService],

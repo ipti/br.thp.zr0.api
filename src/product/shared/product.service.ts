@@ -16,7 +16,7 @@ export class ProductsService {
         data: {
           name: createProductDto.name,
           description: createProductDto.description,
-          price:createProductDto.price,
+          price: createProductDto.price,
           category: { connect: { id: createProductDto.idCategory } },
         },
       });
@@ -33,12 +33,12 @@ export class ProductsService {
       id: true,
       name: true,
       description: true,
-      price: true,
+      price: true
     };
     const filters = isEmpty(query) ? {} : { ...query };
 
     return this.prisma.product.findMany({
-      select: { ...selectInfo },
+      select: { ...selectInfo, category: true },
       where: filters,
     });
   }

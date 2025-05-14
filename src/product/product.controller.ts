@@ -20,8 +20,8 @@ import { ProductsService } from './shared/product.service';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @ApiTags('Product')
-@ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
+// @ApiBearerAuth('access-token')
+// @UseGuards(JwtAuthGuard)
 @Controller('product')
 export class ProductController {
   constructor(private readonly productsService: ProductsService) {}

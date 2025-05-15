@@ -96,5 +96,6 @@ model production {
 enum Role {
   CUSTOMER
   SELLER
+  SELLER_MANAGER
   ADMIN
 }

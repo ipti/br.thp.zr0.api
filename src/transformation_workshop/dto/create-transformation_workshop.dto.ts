@@ -1,5 +1,5 @@
 import { ApiProperty } from "@nestjs/swagger";
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class CreateTransformationWorkshopDto {
 
@@ -12,10 +12,32 @@ export class CreateTransformationWorkshopDto {
     @IsString()
     @ApiProperty()
     cnpj: string
+@IsOptional()
+  @IsString()
+  address?: string;
 
-    @IsOptional()
-    @IsString()
-    @ApiProperty()
-    location: string
+  @IsOptional()
+  @IsString()
+  cep?: string;
+
+  @IsOptional()
+  @IsString()
+  number?: string;
+
+  @IsOptional()
+  @IsString()
+  complement?: string;
+
+  @IsOptional()
+  @IsString()
+  neighborhood?: string;
+
+  @IsOptional()
+  @IsNumber()
+  city_fk?: number;
+
+  @IsOptional()
+  @IsNumber()
+  state_fk?: number;
 }
 

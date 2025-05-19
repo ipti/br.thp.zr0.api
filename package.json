@@ -6,6 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
+    "seed": "ts-node --transpile-only prisma/seed/seed.ts",
     "build": "tsc --build --clean && tsc && npm run copy:templates",
     "copy:templates": "copyfiles -u 4 src/utils/middleware/resources/*.hbs dist/utils/middleware/resources/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",

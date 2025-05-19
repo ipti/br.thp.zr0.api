@@ -32,11 +32,41 @@ model transformation_workshop {
   id                           Int                            @id @default(autoincrement())
   name                         String
   cnpj                         String?
-  location                     String?
+  cep                          String?                        @db.VarChar(8)
+  address                      String?                        @db.VarChar(100)
+  number                       String?                        @db.VarChar(10)
+  complement                   String?                        @db.VarChar(100)
+  neighborhood                 String?                        @db.VarChar(100)
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime                       @updatedAt
   transformation_workshop_user transformation_workshop_user[]
   production                   production[]
+  state                        state?                         @relation(fields: [state_fk], references: [id])
+  state_fk                     Int?
+  city                         city?                          @relation(fields: [city_fk], references: [id])
+  city_fk                      Int?
+}
+
+model state {
+  id                      Int                       @id @unique(map: "id")
+  acronym                 String                    @db.VarChar(2)
+  name                    String                    @db.VarChar(20)
+  city                    city[]
+  transformation_workshop transformation_workshop[]
+}
+
+model city {
+  id                      Int                       @id @unique(map: "id")
+  state_fk                Int
+  name                    String                    @db.VarChar(50)
+  cep_initial             String?                   @db.VarChar(9)
+  cep_final               String?                   @db.VarChar(9)
+  ddd1                    Int?                      @db.SmallInt
+  ddd2                    Int?                      @db.SmallInt
+  state                   state                     @relation(fields: [state_fk], references: [id], onUpdate: Restrict, map: "city_ibfk_1")
+  transformation_workshop transformation_workshop[]
+
+  @@index([state_fk], map: "state_fk")
 }
 
 model category {

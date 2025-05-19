@@ -11,6 +11,8 @@ import { BFFModule } from './bff/bff.module';
 import { PrtoductModule } from './product/product.module';
 import { CategoryModule } from './category/category.module';
 import { TransformationWorkshopModule } from './transformation_workshop/transformation_workshop.module';
+import { StateModule } from './edcensoUf/edcensouf.module';
+import { CityModule } from './edcensoCity/city.module';
 
 @Module({
   imports: [
@@ -22,6 +24,8 @@ import { TransformationWorkshopModule } from './transformation_workshop/transfor
     PrtoductModule,
     PrismaModule,
     CategoryModule,
+    StateModule,
+    CityModule,
     TransformationWorkshopModule,
   ],
   controllers: [AppController],

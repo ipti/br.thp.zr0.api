@@ -10,6 +10,7 @@ import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { BFFModule } from './bff/bff.module';
 import { PrtoductModule } from './product/product.module';
 import { CategoryModule } from './category/category.module';
+import { TransformationWorkshopModule } from './transformation_workshop/transformation_workshop.module';
 
 @Module({
   imports: [
@@ -21,6 +22,7 @@ import { CategoryModule } from './category/category.module';
     PrtoductModule,
     PrismaModule,
     CategoryModule,
+    TransformationWorkshopModule,
   ],
   controllers: [AppController],
   providers: [AppService],

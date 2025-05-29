@@ -11,7 +11,6 @@ export class UserBffService {
 
   async FindUserTranformationWorkshop(userId: number) {
     try {
-      console.log(userId)
       const user = await this.usersService.findOne(userId);
       if (user.role === 'ADMIN') {
         const getUser = await this.usersService.findAll({});

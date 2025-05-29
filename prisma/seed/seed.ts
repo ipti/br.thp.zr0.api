@@ -5,14 +5,21 @@ import { join } from 'path';
 const prisma = new PrismaClient();
 
 async function main() {
-  const sqlPath = join(__dirname, 'script-state-city.sql');
-  const sql = readFileSync(sqlPath, 'utf8');
+  const files = ['script-state-city.sql', 'script_users_in_smae_workshops.sql'];
 
-  // Separar comandos por ponto-e-vírgula
-  const statements = sql
-    .split(';')
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  const statements: string[] = [];
+
+  for (const file of files) {
+    const sqlPath = join(__dirname, file);
+    const sql = readFileSync(sqlPath, 'utf8');
+
+    statements.push(
+      ...sql
+        .split(';')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    );
+  }
 
   for (const statement of statements) {
     try {

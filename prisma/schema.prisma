@@ -88,16 +88,17 @@ model transformation_workshop_user {
 }
 
 model product {
-  id             Int              @id @default(autoincrement())
-  name           String
-  description    String
-  price          Int?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  category_fk    Int
-  category       category         @relation(fields: [category_fk], references: [id])
-  workshop_stock workshop_stock[]
-  production     production[]
+  id               Int               @id @default(autoincrement())
+  name             String
+  description      String
+  price            Int?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  category_fk      Int
+  category         category          @relation(fields: [category_fk], references: [id])
+  workshop_stock   workshop_stock[]
+  production       production[]
+  product_variants product_variant[]
 }
 
 model workshop_stock {
@@ -121,6 +122,17 @@ model production {
   status                     String?
   createdAt                  DateTime                @default(now())
   updatedAt                  DateTime                @updatedAt
+}
+
+model product_variant {
+  id         Int      @id @default(autoincrement())
+  product_fk Int
+  product    product  @relation(fields: [product_fk], references: [id])
+  name       String   @db.VarChar(120)
+  price      Int
+  amount     Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
 enum Role {

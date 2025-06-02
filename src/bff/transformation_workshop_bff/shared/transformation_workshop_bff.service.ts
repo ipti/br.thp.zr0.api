@@ -86,7 +86,7 @@ export class TransformationWorkshopBffService {
           },
         });
 
-      if (!transformationWorkshopUserFind) {
+      if (transformationWorkshopUserFind) {
         throw new HttpException(
           'Usuário já pertence a Oficina de transformação!',
           HttpStatus.BAD_REQUEST,

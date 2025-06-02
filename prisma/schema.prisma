@@ -41,6 +41,7 @@ model transformation_workshop {
   updatedAt                    DateTime                       @updatedAt
   transformation_workshop_user transformation_workshop_user[]
   production                   production[]
+  product                      product[]
   state                        state?                         @relation(fields: [state_fk], references: [id])
   state_fk                     Int?
   city                         city?                          @relation(fields: [city_fk], references: [id])
@@ -88,17 +89,19 @@ model transformation_workshop_user {
 }
 
 model product {
-  id               Int               @id @default(autoincrement())
-  name             String
-  description      String
-  price            Int?
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  category_fk      Int
-  category         category          @relation(fields: [category_fk], references: [id])
-  workshop_stock   workshop_stock[]
-  production       production[]
-  product_variants product_variant[]
+  id                        Int                      @id @default(autoincrement())
+  name                      String
+  description               String
+  price                     Float?
+  createdAt                 DateTime                 @default(now())
+  updatedAt                 DateTime                 @updatedAt
+  category_fk               Int
+  category                  category                 @relation(fields: [category_fk], references: [id])
+  workshop_stock            workshop_stock[]
+  production                production[]
+  product_variants          product_variant[]
+  transformation_workshop   transformation_workshop? @relation(fields: [transformation_workshop_fk], references: [id])
+  transformation_workshop_fk Int?
 }
 
 model workshop_stock {

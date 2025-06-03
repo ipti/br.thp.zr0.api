@@ -16,18 +16,16 @@ export class TransformationWorkshopBffService {
 
       if (user.role === 'ADMIN') {
         const transformationWorkshopUser =
-          await this.prisma.transformation_workshop_user.findMany({
-            select: {
-              transformation_workshop: {
-                include: {
-                  state: true,
-                  city: true,
-                },
-              },
+          await this.prisma.transformation_workshop.findMany({
+            include: {
+              city: true,
+              state: true,
             },
           });
 
-        return transformationWorkshopUser;
+        return transformationWorkshopUser.map((item) => {
+          return { transformation_workshop: item };
+        });
       }
       const transformationWorkshopUser =
         await this.prisma.transformation_workshop_user.findMany({
@@ -49,7 +47,6 @@ export class TransformationWorkshopBffService {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
   }
-
 
   async transformationWorkshopOne(id: number) {
     try {

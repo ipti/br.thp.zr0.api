@@ -21,12 +21,12 @@ export class CreateProductDto {
   description: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsString()
   @ApiProperty()
-  price: number;
+  price: string;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   @ApiProperty()
-  idCategory: number;
+  idCategory: string;
 }

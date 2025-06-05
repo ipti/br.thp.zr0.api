@@ -35,16 +35,16 @@ export class AzureProviderService {
     return blockBlobClient;
   }
 
-  // public async uploadFile(file: Express.Multer.File, containerName: string) {
-  //   this.containerName = containerName;
-  //   const extension = file.originalname.split('.').pop();
-  //   const file_name = uuidv4() + '.' + extension;
-  //   const blockBlobClient = await this.getBlobClient(file_name);
-  //   const fileUrl = blockBlobClient.url;
-  //   await blockBlobClient.uploadData(file.buffer);
+  public async uploadFile(file: Express.Multer.File, containerName: string) {
+    this.containerName = containerName;
+    const extension = file.originalname.split('.').pop();
+    const file_name = uuidv4() + '.' + extension;
+    const blockBlobClient = await this.getBlobClient(file_name);
+    const fileUrl = blockBlobClient.url;
+    await blockBlobClient.uploadData(file.buffer);
 
-  //   return fileUrl;
-  // }
+    return fileUrl;
+  }
 
   public async deleteFileByUrl(fileUrl: string): Promise<void> {
     const url = new URL(fileUrl);

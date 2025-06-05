@@ -14,6 +14,7 @@ import { TransformationWorkshopModule } from './transformation_workshop/transfor
 import { StateModule } from './edcensoUf/edcensouf.module';
 import { CityModule } from './edcensoCity/city.module';
 import { ProductVariantModule } from './product-variant/product-variant.module';
+import { OrdersModule } from './orders/orders.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { ProductVariantModule } from './product-variant/product-variant.module';
     TransformationWorkshopModule,
     BFFModule,
     ProductVariantModule,
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

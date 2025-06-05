@@ -26,6 +26,7 @@ model users {
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime                       @updatedAt
   transformation_workshop_user transformation_workshop_user[]
+  order                        order[]
 }
 
 model transformation_workshop {
@@ -46,6 +47,8 @@ model transformation_workshop {
   state_fk                     Int?
   city                         city?                          @relation(fields: [city_fk], references: [id])
   city_fk                      Int?
+
+  order order[]
 }
 
 model state {
@@ -89,19 +92,58 @@ model transformation_workshop_user {
 }
 
 model product {
-  id                        Int                      @id @default(autoincrement())
-  name                      String
-  description               String
-  price                     Float?
-  createdAt                 DateTime                 @default(now())
-  updatedAt                 DateTime                 @updatedAt
-  category_fk               Int
-  category                  category                 @relation(fields: [category_fk], references: [id])
-  workshop_stock            workshop_stock[]
-  production                production[]
-  product_variants          product_variant[]
-  transformation_workshop   transformation_workshop? @relation(fields: [transformation_workshop_fk], references: [id])
+  id                         Int                      @id @default(autoincrement())
+  name                       String
+  description                String
+  price                      Float?
+  createdAt                  DateTime                 @default(now())
+  updatedAt                  DateTime                 @updatedAt
+  category_fk                Int
+  category                   category                 @relation(fields: [category_fk], references: [id])
+  workshop_stock             workshop_stock[]
+  production                 production[]
+  product_variants           product_variant[]
+  orders_itens               order_item[]
+  transformation_workshop    transformation_workshop? @relation(fields: [transformation_workshop_fk], references: [id])
   transformation_workshop_fk Int?
+}
+
+model order {
+  id          Int                      @id @default(autoincrement())
+  user_fk     Int
+  user        users                    @relation(fields: [user_fk], references: [id])
+  workshop_fk Int?
+  workshop    transformation_workshop? @relation(fields: [workshop_fk], references: [id])
+
+  status       OrderStatus @default(PENDING)
+  total_amount Float       @default(0)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  order_items    order_item[]
+  payment_status PaymentStatus  @default(PENDING)
+  payment_method PaymentMethod?
+
+  notes String? @db.VarChar(500)
+}
+
+model order_item {
+  id       Int   @id @default(autoincrement())
+  order_fk Int
+  order    order @relation(fields: [order_fk], references: [id])
+
+  product_fk Int
+  product    product @relation(fields: [product_fk], references: [id])
+
+  variant_fk Int?
+  variant    product_variant? @relation(fields: [variant_fk], references: [id])
+
+  quantity    Int
+  unit_price  Float
+  total_price Float
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model workshop_stock {
@@ -128,14 +170,15 @@ model production {
 }
 
 model product_variant {
-  id         Int      @id @default(autoincrement())
+  id         Int          @id @default(autoincrement())
   product_fk Int
-  product    product  @relation(fields: [product_fk], references: [id])
-  name       String   @db.VarChar(120)
+  product    product      @relation(fields: [product_fk], references: [id])
+  name       String       @db.VarChar(120)
   price      Float?
   amount     Int
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  order_item order_item[]
 }
 
 enum Role {
@@ -143,4 +186,28 @@ enum Role {
   SELLER
   SELLER_MANAGER
   ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  IN_PRODUCTION
+  SHIPPED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  PIX
+  CREDIT_CARD
+  DEBIT_CARD
+  BANK_SLIP
+  CASH
 }

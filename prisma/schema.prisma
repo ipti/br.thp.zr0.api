@@ -29,23 +29,35 @@ model users {
 }
 
 model transformation_workshop {
-  id                           Int                            @id @default(autoincrement())
-  name                         String
-  cnpj                         String?
-  cep                          String?                        @db.VarChar(8)
-  address                      String?                        @db.VarChar(100)
-  number                       String?                        @db.VarChar(10)
-  complement                   String?                        @db.VarChar(100)
-  neighborhood                 String?                        @db.VarChar(100)
-  createdAt                    DateTime                       @default(now())
-  updatedAt                    DateTime                       @updatedAt
-  transformation_workshop_user transformation_workshop_user[]
-  production                   production[]
-  product                      product[]
-  state                        state?                         @relation(fields: [state_fk], references: [id])
-  state_fk                     Int?
-  city                         city?                          @relation(fields: [city_fk], references: [id])
-  city_fk                      Int?
+  id                              Int                               @id @default(autoincrement())
+  name                            String
+  cnpj                            String?
+  cep                             String?                           @db.VarChar(8)
+  address                         String?                           @db.VarChar(100)
+  number                          String?                           @db.VarChar(10)
+  complement                      String?                           @db.VarChar(100)
+  neighborhood                    String?                           @db.VarChar(100)
+  createdAt                       DateTime                          @default(now())
+  updatedAt                       DateTime                          @updatedAt
+  transformation_workshop_user    transformation_workshop_user[]
+  transformation_workshop_product transformation_workshop_product[]
+  product                         product[]
+  state                           state?                            @relation(fields: [state_fk], references: [id])
+  state_fk                        Int?
+  city                            city?                             @relation(fields: [city_fk], references: [id])
+  city_fk                         Int?
+  production                      production[]
+}
+
+model transformation_workshop_product {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transformation_workshop    transformation_workshop? @relation(fields: [transformation_workshop_fk], references: [id])
+  transformation_workshop_fk Int?
+  product                    product?                 @relation(fields: [product_fk], references: [id])
+  product_fk                 Int?
 }
 
 model state {
@@ -89,19 +101,29 @@ model transformation_workshop_user {
 }
 
 model product {
-  id                        Int                      @id @default(autoincrement())
-  name                      String
-  description               String
-  price                     Float?
-  createdAt                 DateTime                 @default(now())
-  updatedAt                 DateTime                 @updatedAt
-  category_fk               Int
-  category                  category                 @relation(fields: [category_fk], references: [id])
-  workshop_stock            workshop_stock[]
-  production                production[]
-  product_variants          product_variant[]
-  transformation_workshop   transformation_workshop? @relation(fields: [transformation_workshop_fk], references: [id])
-  transformation_workshop_fk Int?
+  id                              Int                               @id @default(autoincrement())
+  name                            String
+  description                     String
+  price                           Float?
+  createdAt                       DateTime                          @default(now())
+  updatedAt                       DateTime                          @updatedAt
+  category_fk                     Int
+  category                        category                          @relation(fields: [category_fk], references: [id])
+  workshop_stock                  workshop_stock[]
+  production                      production[]
+  product_variants                product_variant[]
+  transformation_workshop_product transformation_workshop_product[]
+  product_image                   product_image[]
+  transformation_workshop         transformation_workshop?          @relation(fields: [transformation_workshop_fk], references: [id])
+  transformation_workshop_fk      Int?
+}
+
+model product_image {
+  id Int @id @default(autoincrement())
+  img_url String?
+  order Int?
+  product   product? @relation(fields: [product_fk], references: [id])
+  product_fk Int?
 }
 
 model workshop_stock {

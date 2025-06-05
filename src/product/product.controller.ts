@@ -8,16 +8,26 @@ import {
   Put,
   Query,
   Req,
+  UploadedFiles,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { FilesInterceptor } from '@nestjs/platform-express';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiConsumes,
+  ApiCreatedResponse,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { Request } from 'express';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ProductResponse } from './doc/product.response';
 import { CreateProductDto } from './dto/create-product.dto';
 import { QueryProductDto } from './dto/query-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductsService } from './shared/product.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @ApiTags('Product')
 @ApiBearerAuth('access-token')
@@ -28,8 +38,17 @@ export class ProductController {
 
   @Post()
   @ApiCreatedResponse({ type: ProductResponse })
-  async create(@Body() userCreate: CreateProductDto) {
-    return await this.productsService.create(userCreate);
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'Create product with files',
+    type: CreateProductDto as any,
+  })
+  @UseInterceptors(FilesInterceptor('files'))
+  async create(
+    @Body() userCreate: CreateProductDto,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    return await this.productsService.create(userCreate, files);
   }
 
   @Get()

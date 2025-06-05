@@ -5,23 +5,46 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductDto } from '../dto/create-product.dto';
 import { QueryProductDto } from '../dto/query-product.dto';
 import { UpdateProductDto } from '../dto/update-product.dto';
+import { AzureProviderService } from 'src/utils/middleware/azure.provider';
 
 @Injectable()
 export class ProductsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly azureService: AzureProviderService,
+  ) {}
 
-  async create(createProductDto: CreateProductDto) {
+  async create(createProductDto: CreateProductDto, file) {
     try {
-      const createdProduct = await this.prisma.product.create({
-        data: {
-          name: createProductDto.name,
-          description: createProductDto.description,
-          price: createProductDto.price,
-          category: { connect: { id: createProductDto.idCategory } },
-        },
-      });
+      const transaction = await this.prisma.$transaction(async (tx) => {
+        const createdProduct = await tx.product.create({
+          data: {
+            name: createProductDto.name,
+            description: createProductDto.description,
+            price: +createProductDto.price,
+            category: { connect: { id: +createProductDto.idCategory } },
+          },
+        });
 
-      return createdProduct;
+        if (file) {
+          for (const i of file) {
+            const fileAzure = await this.azureService.uploadFile(
+              i,
+              'image-product',
+            );
+            if (fileAzure) {
+              await tx.product_image.create({
+                data: {
+                  img_url: fileAzure,
+                  product: { connect: { id: createdProduct.id } },
+                },
+              });
+            }
+          }
+        }
+        return createdProduct;
+      });
+      return transaction;
     } catch (err) {
       console.log(err);
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
@@ -33,7 +56,7 @@ export class ProductsService {
       id: true,
       name: true,
       description: true,
-      price: true
+      price: true,
     };
     const filters = isEmpty(query) ? {} : { ...query };
 

@@ -1,5 +1,4 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import * as bcrypt from 'bcrypt';
 import { isEmpty } from 'class-validator';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreateProductDto } from '../dto/create-product.dto';
@@ -23,6 +22,10 @@ export class ProductsService {
             description: createProductDto.description,
             price: +createProductDto.price,
             category: { connect: { id: +createProductDto.idCategory } },
+            height: +createProductDto.height,
+            length: +createProductDto.length,
+            width: +createProductDto.width,
+            weight: +createProductDto.weight,
           },
         });
 
@@ -80,7 +83,6 @@ export class ProductsService {
 
   async update(id: number, updateProductDto: UpdateProductDto) {
     try {
-      const Product = await this.findOne(id);
       const updatedProduct = await this.prisma.product.update({
         where: {
           id,

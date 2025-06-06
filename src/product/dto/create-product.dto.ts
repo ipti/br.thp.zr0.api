@@ -4,7 +4,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
-  MaxLength
+  MaxLength,
 } from 'class-validator';
 
 export class CreateProductDto {
@@ -21,12 +21,32 @@ export class CreateProductDto {
   description: string;
 
   @IsOptional()
-  @IsString()
+  @IsNumber()
   @ApiProperty()
   price: string;
 
   @IsNotEmpty()
-  @IsString()
+  @IsNumber()
   @ApiProperty()
   idCategory: string;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @ApiProperty()
+  height;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @ApiProperty()
+  length;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @ApiProperty()
+  width;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @ApiProperty()
+  weight;
 }

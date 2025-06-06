@@ -15,6 +15,8 @@ import { StateModule } from './edcensoUf/edcensouf.module';
 import { CityModule } from './edcensoCity/city.module';
 import { ProductVariantModule } from './product-variant/product-variant.module';
 import { OrdersModule } from './orders/orders.module';
+import { CheckoutModule } from './checkout/checkout.module';
+import { ShippingModule } from './shipping/shipping.module';
 
 @Module({
   imports: [
@@ -31,6 +33,8 @@ import { OrdersModule } from './orders/orders.module';
     BFFModule,
     ProductVariantModule,
     OrdersModule,
+    CheckoutModule,
+    ShippingModule,
   ],
   controllers: [AppController],
   providers: [AppService],

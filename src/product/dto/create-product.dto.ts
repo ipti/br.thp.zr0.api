@@ -21,32 +21,32 @@ export class CreateProductDto {
   description: string;
 
   @IsOptional()
-  @IsNumber()
+  @IsString()
   @ApiProperty()
   price: string;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   @ApiProperty()
   idCategory: string;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   @ApiProperty()
   height;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   @ApiProperty()
   length;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   @ApiProperty()
   width;
 
   @IsNotEmpty()
-  @IsNumber()
+  @IsString()
   @ApiProperty()
   weight;
 }

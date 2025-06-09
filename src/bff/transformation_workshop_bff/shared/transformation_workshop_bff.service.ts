@@ -58,6 +58,16 @@ export class TransformationWorkshopBffService {
           include: {
             state: true,
             city: true,
+            transformation_workshop_product: {
+              select: {
+                id: true,
+                product: {
+                  include: {
+                    product_image: true
+                  }
+                },
+              }
+            },
             transformation_workshop_user: {
               select: {
                 users: true,

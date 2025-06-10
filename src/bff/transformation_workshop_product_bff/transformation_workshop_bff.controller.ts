@@ -5,13 +5,15 @@ import {
   Get,
   Param,
   Post,
+  Put,
   Query,
   UseGuards
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-import { AddProductTransformationWorkshopDto } from './dto/transformation_workshop_add_user.dto';
+import { AddProductTransformationWorkshopDto } from './dto/transformation_workshop_product_add.dto';
 import { TransformationWorkshopProductBffService } from './shared/transformation_workshop_bff.service';
+import { ProductTransformationWorkshopUpdateDto } from './dto/transformation_workshop_product_update.dto';
 
 @ApiTags('Transformation-Workshop-Product-Bff')
 @Controller('transformation-workshop-product-bff')
@@ -37,6 +39,17 @@ export class TransformationWorkshopProductBffController {
     @Body() body: AddProductTransformationWorkshopDto
   ) {
     return this.transformationWorkshopProductBffService.addProductTransformationWorkshop(
+      body,
+    );
+  }
+
+  @Put('update-product/:id')
+  update(
+    @Param('id') id: string,
+    @Body() body: ProductTransformationWorkshopUpdateDto
+  ) {
+    return this.transformationWorkshopProductBffService.updateTransformationWorkshop(
+      id,
       body,
     );
   }

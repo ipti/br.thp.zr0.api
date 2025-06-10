@@ -61,6 +61,7 @@ export class TransformationWorkshopBffService {
             transformation_workshop_product: {
               select: {
                 id: true,
+                quantity: true,
                 product: {
                   include: {
                     product_image: true

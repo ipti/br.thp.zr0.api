@@ -1,17 +1,23 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  IsNotEmpty,
   IsNumber,
   IsOptional
 } from 'class-validator';
 
 export class AddProductTransformationWorkshopDto {
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
   @ApiProperty()
   product_fk?: number;
 
-  @IsOptional()
+  @IsNotEmpty()
   @IsNumber()
   @ApiProperty()
   tw_fk?: number;
+
+  @IsNotEmpty()
+  @IsNumber()
+  @ApiProperty()
+  quantity: number;
 }

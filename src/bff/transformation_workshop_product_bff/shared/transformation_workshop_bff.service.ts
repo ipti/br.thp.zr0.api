@@ -1,10 +1,11 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { AddProductTransformationWorkshopDto } from '../dto/transformation_workshop_add_user.dto';
+import { AddProductTransformationWorkshopDto } from '../dto/transformation_workshop_product_add.dto';
+import { ProductTransformationWorkshopUpdateDto } from '../dto/transformation_workshop_product_update.dto';
 
 @Injectable()
 export class TransformationWorkshopProductBffService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async transformationWorkshopProduct(twId: string) {
     try {
@@ -39,7 +40,7 @@ export class TransformationWorkshopProductBffService {
 
       if (transformationWorkshopUserFind) {
         throw new HttpException(
-          'Produto já pertence a Oficina de transformação!',
+          'Produto já pertence a Oficina de Transformação!',
           HttpStatus.BAD_REQUEST,
         );
       }
@@ -53,6 +54,7 @@ export class TransformationWorkshopProductBffService {
             transformation_workshop: {
               connect: { id: addProductTransformationWorkshopDto.tw_fk },
             },
+            quantity: addProductTransformationWorkshopDto.quantity,
           },
         });
 
@@ -62,16 +64,47 @@ export class TransformationWorkshopProductBffService {
     }
   }
 
-  async removeProductTransformationWorkshop(
+  async updateTransformationWorkshop(
     id: string,
+    updateProductTransformationWorkshopDto: ProductTransformationWorkshopUpdateDto,
   ) {
+    try {
+      const transformationWorkshopUserFind =
+        await this.prisma.transformation_workshop_product.findUnique({
+          where: {
+            id: +id,
+          },
+        });
 
-    console.log(id)
+      if (!transformationWorkshopUserFind) {
+        throw new HttpException(
+          'Produto não pertence a Oficina de Transformação!',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      const transformation_workshop_product_update =
+        await this.prisma.transformation_workshop_product.update({
+          where: {
+            id: +id,
+          },
+          data: {
+            quantity: updateProductTransformationWorkshopDto.quantity,
+          },
+        });
+
+      return transformation_workshop_product_update;
+    } catch (err) {
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async removeProductTransformationWorkshop(id: string) {
     try {
       const relation =
         await this.prisma.transformation_workshop_product.findUnique({
           where: {
-            id: +id
+            id: +id,
           },
         });
 
@@ -84,13 +117,13 @@ export class TransformationWorkshopProductBffService {
 
       const deleted = await this.prisma.transformation_workshop_product.delete({
         where: {
-          id: +id
+          id: +id,
         },
       });
 
       return deleted;
     } catch (err) {
-      console.log(err)
+      console.log(err);
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
   }

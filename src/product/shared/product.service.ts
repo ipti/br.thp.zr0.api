@@ -64,7 +64,7 @@ export class ProductsService {
     const filters = isEmpty(query) ? {} : { ...query };
 
     return this.prisma.product.findMany({
-      select: { ...selectInfo, category: true },
+      select: { ...selectInfo, category: true, product_image: true },
       where: filters,
     });
   }

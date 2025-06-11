@@ -13,7 +13,7 @@ export class AzureProviderService {
   private containerName: string;
 
   private async getBlobServiceInstance() {
-    const account = 'coded';
+    const account = 'zrodrive';
     const accountKey = process.env.AZURE_BLOB_KEY;
     const sharedKeyCredential = new StorageSharedKeyCredential(
       account,

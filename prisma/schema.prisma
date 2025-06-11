@@ -51,10 +51,10 @@ model transformation_workshop {
 }
 
 model transformation_workshop_product {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
+  id                         Int                      @id @default(autoincrement())
+  createdAt                  DateTime                 @default(now())
+  updatedAt                  DateTime                 @updatedAt
+  quantity                   Int
   transformation_workshop    transformation_workshop? @relation(fields: [transformation_workshop_fk], references: [id])
   transformation_workshop_fk Int?
   product                    product?                 @relation(fields: [product_fk], references: [id])
@@ -114,7 +114,6 @@ model product {
   width                           Float
   length                          Float
   category                        category                          @relation(fields: [category_fk], references: [id])
-  workshop_stock                  workshop_stock[]
   production                      production[]
   product_variants                product_variant[]
   transformation_workshop_product transformation_workshop_product[]
@@ -166,15 +165,6 @@ model order_item {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-}
-
-model workshop_stock {
-  id         Int      @id @default(autoincrement())
-  product_fk Int
-  product    product  @relation(fields: [product_fk], references: [id])
-  quantity   Int
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
 }
 
 model production {

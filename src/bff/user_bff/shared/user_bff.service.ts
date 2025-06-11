@@ -9,7 +9,7 @@ export class UserBffService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
-  ) {}
+  ) { }
 
   async FindUserTranformationWorkshop(userId: number) {
     try {
@@ -18,10 +18,13 @@ export class UserBffService {
         const getUser = await this.usersService.findAll({});
         return getUser;
       }
-      const getUser = await this.prisma.$queryRaw`SELECT *
-              FROM zr0.users_in_same_workshops
-              WHERE reference_user_id = ${userId}
-          `;
+      const getUser = await this.prisma.users.findMany({
+        where: {
+          NOT: {
+            role: 'CUSTOMER'
+          }
+        }
+      })
 
       return getUser;
     } catch (err) {

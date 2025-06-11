@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { ShippingRequestDto } from './dto/shipping.dto';
 import { MeuEnvioShippingStrategy } from './strategies/meu-envio-shipping.strategy';
 import { ShippingContext } from './entities/shipping-context.entity';
+import { ShippingCalculationResult } from './entities/shipping-result.entity';
 @Injectable()
 export class ShippingService {
   constructor(
@@ -10,7 +11,10 @@ export class ShippingService {
     private readonly meuEnvioShippingStrategy: MeuEnvioShippingStrategy,
   ) {}
 
-  async calculate(dto: ShippingRequestDto): Promise<number> {
+  async calculate(dto: ShippingRequestDto): Promise<{
+    totalCost: number;
+    shipments: { workshopId: number; result: ShippingCalculationResult }[];
+  }> {
     const products = await this.fetchProductsWithWorkshop(
       dto.orderItems.map((i) => i.productId),
     );
@@ -18,17 +22,27 @@ export class ShippingService {
 
     let totalShippingCost = 0;
 
+    const shipments: {
+      workshopId: number;
+      result: ShippingCalculationResult;
+    }[] = [];
+
     for (const [workshopId, items] of Object.entries(itemsGrouped)) {
       const context = await this.buildShippingContext(
         Number(workshopId),
         items,
         dto.destinationZipCode,
       );
-      const cost = await this.meuEnvioShippingStrategy.calculate(context);
-      totalShippingCost += cost;
+
+      const result = await this.meuEnvioShippingStrategy.calculate(context);
+      totalShippingCost += result.bestOption.cost;
+      shipments.push({ workshopId: Number(workshopId), result });
     }
 
-    return totalShippingCost;
+    return {
+      totalCost: totalShippingCost,
+      shipments,
+    };
   }
 
   private async fetchProductsWithWorkshop(
@@ -59,36 +73,51 @@ export class ShippingService {
     products: ProductWithWorkshop[],
   ): Record<
     number,
-    {
+    { productId: number; quantity: number; product: ProductWithWorkshop }[]
+  > {
+    type GroupedItem = {
       productId: number;
       quantity: number;
       product: ProductWithWorkshop;
-    }[]
-  > {
-    return dto.orderItems.reduce(
-      (acc, item) => {
-        const product = products.find((p) => p.id === item.productId);
-        if (!product) throw new Error(`Product ${item.productId} not found`);
-        if (
-          !product.transformation_workshop_product[0]?.transformation_workshop
-        )
-          throw new Error(
-            `Product ${item.productId} has no associated workshop`,
-          );
+    };
 
-        const workshopId =
-          product.transformation_workshop_product[0].transformation_workshop.id;
+    const grouped: Record<number, GroupedItem[]> = {};
 
-        if (!acc[workshopId]) acc[workshopId] = [];
-        acc[workshopId].push({ ...item, product });
+    for (const item of dto.orderItems) {
+      const product = products.find((p) => p.id === item.productId);
+      if (!product) {
+        throw new Error(`Product with ID ${item.productId} not found.`);
+      }
 
-        return acc;
-      },
-      {} as Record<
-        number,
-        { productId: number; quantity: number; product: ProductWithWorkshop }[]
-      >,
-    );
+      const workshopAssociations =
+        product.transformation_workshop_product.filter(
+          (tw) => tw.transformation_workshop?.id,
+        );
+
+      if (workshopAssociations.length === 0) {
+        throw new Error(
+          `Product ${item.productId} has no associated workshops.`,
+        );
+      }
+
+      // Distribui a quantidade igualmente entre os workshops (ou repete a mesma quantidade para todos)
+      // Aqui usamos a MESMA quantidade para cada workshop, mas você pode alterar essa lógica
+      for (const association of workshopAssociations) {
+        const workshopId = association.transformation_workshop!.id;
+
+        if (!grouped[workshopId]) {
+          grouped[workshopId] = [];
+        }
+
+        grouped[workshopId].push({
+          productId: item.productId,
+          quantity: item.quantity,
+          product,
+        });
+      }
+    }
+
+    return grouped;
   }
 
   private async buildShippingContext(

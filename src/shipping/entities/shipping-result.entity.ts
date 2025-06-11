@@ -7,5 +7,9 @@ export interface ShippingRate {
   error?: string | null; // optional error field
   serviceCode?: string; // internal service code
 }
+export interface ShippingCalculationResult {
+  bestOption: ShippingRate;
+  validOptions: ShippingRate[];
+}
 
 export type ShippingQuoteResponse = ShippingRate[];

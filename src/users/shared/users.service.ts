@@ -8,7 +8,7 @@ import { UpdateUserDto } from '../dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(createUserDto: CreateUserDto) {
     const userRegistered = await this.prisma.users.findMany({
@@ -21,11 +21,24 @@ export class UsersService {
     const hashedPassword = await this.hashPassword(createUserDto.password);
 
     try {
-      const createdUser = await this.prisma.users.create({
-        data: { ...createUserDto, password: hashedPassword },
-      });
 
-      return createdUser;
+      const transaction = await this.prisma.$transaction(async (tx) => {
+        const createdUser = await tx.users.create({
+          data: { ...createUserDto, password: hashedPassword },
+        });
+
+        if (createdUser.role === 'CUSTOMER') {
+          await tx.customer.create({
+            data: {
+              user: { connect: { id: createdUser.id } },
+            },
+          });
+        }
+
+        return createdUser;
+      })
+
+      return transaction;
     } catch (err) {
       console.log(err);
       throw new HttpException(err, HttpStatus.BAD_REQUEST);

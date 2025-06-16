@@ -8,7 +8,7 @@ export class TransformationWorkshopBffService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
-  ) {}
+  ) { }
 
   async transformationWorkshopUser(userId: number) {
     try {
@@ -115,6 +115,56 @@ export class TransformationWorkshopBffService {
         });
 
       return transformation_workshop_user_create;
+    } catch (err) {
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getMemberTransformationWorkshop(id: number) {
+    try {
+      const members = await this.prisma.transformation_workshop.findUnique({
+        where: {
+          id: id
+        },
+        select: {
+          transformation_workshop_user: {
+            include: {
+              users: {
+                select: {
+                  name: true,
+                  email: true,
+                  role: true,
+                }
+              }
+            }
+          }
+        }
+      })
+      return members;
+    } catch (err) {
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getPoductTransformationWorkshop(id: number) {
+    try {
+      const members = await this.prisma.transformation_workshop.findUnique({
+        where: {
+          id: id
+        },
+        select: {
+          transformation_workshop_product: {
+            include: {
+              product: {
+                include: {
+                  product_image: true
+                }
+              }
+            }
+          }
+        }
+      })
+      return members;
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }

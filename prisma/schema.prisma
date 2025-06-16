@@ -25,9 +25,39 @@ model users {
   verify_email                 Boolean                        @default(false)
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime                       @updatedAt
+  customer                     customer?
   transformation_workshop_user transformation_workshop_user[]
   order                        order[]
-  customer                     customer[]
+}
+
+model customer {
+  id             Int       @id @default(autoincrement())
+  cpf            String?   @db.VarChar(11)
+  cnpj           String?   @db.VarChar(14)
+  birthday       DateTime?
+  phone          String?
+  corporate_name String?   @db.VarChar(150)
+  trade_name     String?   @db.VarChar(150)
+  user           users     @relation(fields: [user_fk], references: [id])
+  user_fk        Int       @unique
+
+  billing_address billing_address_customer?
+}
+
+model billing_address_customer {
+  id           Int     @id @default(autoincrement())
+  cep          String?
+  address      String
+  number       String
+  complement   String? @db.VarChar(100)
+  neighborhood String? @db.VarChar(100)
+  state        state?  @relation(fields: [state_fk], references: [id])
+  state_fk     Int?
+  city         city?   @relation(fields: [city_fk], references: [id])
+  city_fk      Int?
+
+  customer    customer @relation(fields: [customer_fk], references: [id])
+  customer_fk Int      @unique
 }
 
 model transformation_workshop {
@@ -63,25 +93,25 @@ model transformation_workshop_product {
 }
 
 model state {
-  id                      Int                       @id @unique(map: "id")
-  acronym                 String                    @db.VarChar(2)
-  name                    String                    @db.VarChar(20)
-  city                    city[]
-  transformation_workshop transformation_workshop[]
-  costumer_address        customer_address[]
+  id                       Int                        @id @unique(map: "id")
+  acronym                  String                     @db.VarChar(2)
+  name                     String                     @db.VarChar(20)
+  city                     city[]
+  transformation_workshop  transformation_workshop[]
+  billing_address_customer billing_address_customer[]
 }
 
 model city {
-  id                      Int                       @id @unique(map: "id")
-  state_fk                Int
-  name                    String                    @db.VarChar(50)
-  cep_initial             String?                   @db.VarChar(9)
-  cep_final               String?                   @db.VarChar(9)
-  ddd1                    Int?                      @db.SmallInt
-  ddd2                    Int?                      @db.SmallInt
-  state                   state                     @relation(fields: [state_fk], references: [id], onUpdate: Restrict, map: "city_ibfk_1")
-  transformation_workshop transformation_workshop[]
-  costumer_address        customer_address[]
+  id                       Int                        @id @unique(map: "id")
+  state_fk                 Int
+  name                     String                     @db.VarChar(50)
+  cep_initial              String?                    @db.VarChar(9)
+  cep_final                String?                    @db.VarChar(9)
+  ddd1                     Int?                       @db.SmallInt
+  ddd2                     Int?                       @db.SmallInt
+  state                    state                      @relation(fields: [state_fk], references: [id], onUpdate: Restrict, map: "city_ibfk_1")
+  transformation_workshop  transformation_workshop[]
+  billing_address_customer billing_address_customer[]
 
   @@index([state_fk], map: "state_fk")
 }
@@ -194,31 +224,6 @@ model product_variant {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   order_item order_item[]
-}
-
-model customer {
-  id               Int                @id @default(autoincrement())
-  user_fk          Int
-  users            users              @relation(fields: [user_fk], references: [id])
-  phone_number     String             @db.VarChar(20)
-  cpf_cnpj         String             @db.VarChar(16)
-  type             CustomerType
-  customer_address customer_address[]
-}
-
-model customer_address {
-  id           Int      @id @default(autoincrement())
-  customer_fk  Int
-  customer     customer @relation(fields: [customer_fk], references: [id])
-  state_fk     Int
-  state        state    @relation(fields: [state_fk], references: [id])
-  city_fk      Int
-  city         city     @relation(fields: [city_fk], references: [id])
-  cep          String   @db.VarChar(10)
-  number       Int
-  street       String   @db.VarChar(80)
-  neighborhood String   @db.VarChar(80)
-  complement   String   @db.VarChar(30)
 }
 
 enum CustomerType {

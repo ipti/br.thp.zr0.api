@@ -27,6 +27,7 @@ model users {
   updatedAt                    DateTime                       @updatedAt
   transformation_workshop_user transformation_workshop_user[]
   order                        order[]
+  customer                     customer[]
 }
 
 model transformation_workshop {
@@ -67,6 +68,7 @@ model state {
   name                    String                    @db.VarChar(20)
   city                    city[]
   transformation_workshop transformation_workshop[]
+  costumer_address        customer_address[]
 }
 
 model city {
@@ -79,6 +81,7 @@ model city {
   ddd2                    Int?                      @db.SmallInt
   state                   state                     @relation(fields: [state_fk], references: [id], onUpdate: Restrict, map: "city_ibfk_1")
   transformation_workshop transformation_workshop[]
+  costumer_address        customer_address[]
 
   @@index([state_fk], map: "state_fk")
 }
@@ -191,6 +194,36 @@ model product_variant {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   order_item order_item[]
+}
+
+model customer {
+  id               Int                @id @default(autoincrement())
+  user_fk          Int
+  users            users              @relation(fields: [user_fk], references: [id])
+  phone_number     String             @db.VarChar(20)
+  cpf_cnpj         String             @db.VarChar(16)
+  type             CustomerType
+  customer_address customer_address[]
+}
+
+model customer_address {
+  id           Int      @id @default(autoincrement())
+  customer_fk  Int
+  customer     customer @relation(fields: [customer_fk], references: [id])
+  state_fk     Int
+  state        state    @relation(fields: [state_fk], references: [id])
+  city_fk      Int
+  city         city     @relation(fields: [city_fk], references: [id])
+  cep          String   @db.VarChar(10)
+  number       Int
+  street       String   @db.VarChar(80)
+  neighborhood String   @db.VarChar(80)
+  complement   String   @db.VarChar(30)
+}
+
+enum CustomerType {
+  PF
+  PJ
 }
 
 enum Role {

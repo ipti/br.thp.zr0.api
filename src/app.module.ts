@@ -18,6 +18,7 @@ import { OrdersModule } from './orders/orders.module';
 import { CheckoutModule } from './checkout/checkout.module';
 import { ShippingModule } from './shipping/shipping.module';
 import { CustomerModule } from './customer/customer.module';
+import { BillingAddressCustomerModule } from './billing_address_customer/billing_address_customer.module';
 
 @Module({
   imports: [
@@ -37,6 +38,7 @@ import { CustomerModule } from './customer/customer.module';
     CheckoutModule,
     ShippingModule,
     CustomerModule,
+    BillingAddressCustomerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

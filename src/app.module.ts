@@ -17,6 +17,7 @@ import { ProductVariantModule } from './product-variant/product-variant.module';
 import { OrdersModule } from './orders/orders.module';
 import { CheckoutModule } from './checkout/checkout.module';
 import { ShippingModule } from './shipping/shipping.module';
+import { CustomerModule } from './customer/customer.module';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ShippingModule } from './shipping/shipping.module';
     OrdersModule,
     CheckoutModule,
     ShippingModule,
+    CustomerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

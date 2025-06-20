@@ -30,14 +30,14 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductsService } from './shared/product.service';
 
 @ApiTags('Product')
-@ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
 @Controller('product')
 export class ProductController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
   @ApiCreatedResponse({ type: ProductResponse })
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiConsumes('multipart/form-data')
   @ApiBody({
     description: 'Create product with files',
@@ -64,6 +64,8 @@ export class ProductController {
   }
 
   @Put(':id')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiCreatedResponse({ type: ProductResponse })
   async update(
     @Req() req: Request,
@@ -74,6 +76,8 @@ export class ProductController {
   }
 
   @Delete(':id')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   async delete(@Param('id') id: string) {
     this.productsService.remove(id);
   }

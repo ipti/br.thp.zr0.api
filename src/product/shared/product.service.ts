@@ -72,6 +72,9 @@ export class ProductsService {
   async findOne(id: number) {
     const product = await this.prisma.product.findUnique({
       where: { id: id },
+      include: {
+        product_image: true
+      }
     });
 
     if (!product) {

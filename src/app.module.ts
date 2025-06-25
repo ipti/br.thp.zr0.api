@@ -20,6 +20,7 @@ import { ShippingModule } from './shipping/shipping.module';
 import { CustomerModule } from './customer/customer.module';
 import { BillingAddressCustomerModule } from './billing_address_customer/billing_address_customer.module';
 import { ProductionModule } from './production/production.module';
+import { CartModule } from './cart/cart.module';
 
 @Module({
   imports: [
@@ -41,6 +42,7 @@ import { ProductionModule } from './production/production.module';
     CustomerModule,
     BillingAddressCustomerModule,
     ProductionModule,
+    CartModule,
   ],
   controllers: [AppController],
   providers: [AppService],

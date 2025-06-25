@@ -26,6 +26,7 @@ model users {
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime                       @updatedAt
   customer                     customer?
+  cart                         cart?
   transformation_workshop_user transformation_workshop_user[]
   order                        order[]
 }
@@ -152,6 +153,7 @@ model product {
   transformation_workshop_product transformation_workshop_product[]
   product_image                   product_image[]
   order_item                      order_item[]
+  cartItem                        cartItem[]
 }
 
 model product_image {
@@ -224,6 +226,24 @@ model product_variant {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   order_item order_item[]
+}
+
+model cart {
+  id        Int        @id @default(autoincrement())
+  user_fk   Int        @unique
+  user      users      @relation(fields: [user_fk], references: [id])
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  items     cartItem[]
+}
+
+model cartItem {
+  id         Int     @id @default(autoincrement())
+  cart_fk    Int
+  product_fk Int
+  quantity   Int
+  cart       cart    @relation(fields: [cart_fk], references: [id])
+  product    product @relation(fields: [product_fk], references: [id])
 }
 
 enum CustomerType {

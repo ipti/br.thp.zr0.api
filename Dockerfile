@@ -28,7 +28,8 @@ COPY . .
 RUN npx prisma generate
 RUN npm run build
 
-FROM node:16.13 as production
+# ✅ CORRIGIDO: Usa imagem baseada em Debian com OpenSSL
+FROM node:18.18-slim AS production
 
 ARG APP_PORT=80
 ARG APP_NAME=br.thp.zr0.api
@@ -41,11 +42,14 @@ ARG GIT_BRANCH
 
 WORKDIR /home/api
 
+# ✅ Instala OpenSSL
+RUN apt-get update && apt-get install -y openssl libssl-dev && rm -rf /var/lib/apt/lists/*
+
 COPY --from=builder /home/api ./
 
-RUN mkdir -p ./archives && chown -R www-data:www-data ./archives \
-&& chown -R www-data:www-data ./archives/ 
+# Permissões
+RUN mkdir -p ./archives && chown -R www-data:www-data ./archives
 
 EXPOSE 80
 
-CMD [  "npm", "run", "start:migrate:prod" ]
+CMD ["npm", "run", "start:migrate:prod"]

@@ -3,5 +3,5 @@ import { CheckoutService } from './checkout.service';
 
 @Controller('checkout')
 export class CheckoutController {
-  constructor(private readonly checkoutService: CheckoutService) { }
+  constructor(private readonly checkoutService: CheckoutService) {}
 }

@@ -9,7 +9,8 @@ export class AppService {
     return [
       'http://localhost:3000',
       'http://localhost:3001',
-      'https://coded-edmundo.thp.org.br',
+      'https://zro-app.azurewebsites.net',
+      'http://zro-app.azurewebsites.net',
     ];
   }
 }

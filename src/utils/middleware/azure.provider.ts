@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
 import {
   BlobServiceClient,
   BlockBlobClient,
@@ -9,15 +10,15 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AzureProviderService {
-  constructor(private readonly configService: ConfigService) { }
+  constructor(private readonly configService: ConfigService) {}
   private containerName: string;
 
-  private async getBlobServiceInstance() {
+  private getBlobServiceInstance() {
     const account = 'zrodrive';
     const accountKey = process.env.AZURE_BLOB_KEY;
     const sharedKeyCredential = new StorageSharedKeyCredential(
       account,
-      accountKey ?? "",
+      accountKey ?? '',
     );
     const blobClientService = new BlobServiceClient(
       `https://${account}.blob.core.windows.net`,
@@ -26,8 +27,8 @@ export class AzureProviderService {
     return blobClientService;
   }
 
-  private async getBlobClient(imageName: string): Promise<BlockBlobClient> {
-    const blobService = await this.getBlobServiceInstance();
+  private getBlobClient(imageName: string): BlockBlobClient {
+    const blobService = this.getBlobServiceInstance();
     const containerName = this.containerName;
     const containerClient = blobService.getContainerClient(containerName);
     const blockBlobClient = containerClient.getBlockBlobClient(imageName);
@@ -39,7 +40,7 @@ export class AzureProviderService {
     this.containerName = containerName;
     const extension = file.originalname.split('.').pop();
     const file_name = uuidv4() + '.' + extension;
-    const blockBlobClient = await this.getBlobClient(file_name);
+    const blockBlobClient = this.getBlobClient(file_name);
     const fileUrl = blockBlobClient.url;
     await blockBlobClient.uploadData(file.buffer);
 
@@ -53,7 +54,7 @@ export class AzureProviderService {
     const blobName = pathParts.slice(2).join('/');
 
     this.containerName = containerName;
-    const blockBlobClient = await this.getBlobClient(blobName);
+    const blockBlobClient = this.getBlobClient(blobName);
     await blockBlobClient.delete();
   }
 }

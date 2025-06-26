@@ -4,6 +4,7 @@ import { ShippingRequestDto } from './dto/shipping.dto';
 import { MeuEnvioShippingStrategy } from './strategies/meu-envio-shipping.strategy';
 import { ShippingContext } from './entities/shipping-context.entity';
 import { ShippingCalculationResult } from './entities/shipping-result.entity';
+
 @Injectable()
 export class ShippingService {
   constructor(

@@ -8,5 +8,6 @@ import { PrismaModule } from 'src/prisma/prisma.module';
   imports: [PrismaModule],
   controllers: [ShippingController],
   providers: [ShippingService, MeuEnvioShippingStrategy],
+  exports: [ShippingService],
 })
 export class ShippingModule {}

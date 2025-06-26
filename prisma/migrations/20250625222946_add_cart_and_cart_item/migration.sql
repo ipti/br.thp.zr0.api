@@ -1,11 +1,11 @@
 -- CreateTable
 CREATE TABLE `cart` (
     `id` INTEGER NOT NULL AUTO_INCREMENT,
-    `user_fk` INTEGER NOT NULL,
+    `customer_fk` INTEGER NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
-    UNIQUE INDEX `cart_user_fk_key`(`user_fk`),
+    UNIQUE INDEX `cart_customer_fk_key`(`customer_fk`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -20,7 +20,7 @@ CREATE TABLE `cartItem` (
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- AddForeignKey
-ALTER TABLE `cart` ADD CONSTRAINT `cart_user_fk_fkey` FOREIGN KEY (`user_fk`) REFERENCES `users`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE `cart` ADD CONSTRAINT `cart_customer_fk_key` FOREIGN KEY (`customer_fk`) REFERENCES `customer`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE `cartItem` ADD CONSTRAINT `cartItem_cart_fk_fkey` FOREIGN KEY (`cart_fk`) REFERENCES `cart`(`id`) ON DELETE RESTRICT ON UPDATE CASCADE;

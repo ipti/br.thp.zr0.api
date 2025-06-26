@@ -26,7 +26,6 @@ model users {
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime                       @updatedAt
   customer                     customer?
-  cart                         cart?
   transformation_workshop_user transformation_workshop_user[]
   order                        order[]
 }
@@ -41,6 +40,7 @@ model customer {
   trade_name     String?   @db.VarChar(150)
   user           users     @relation(fields: [user_fk], references: [id])
   user_fk        Int       @unique
+  cart           cart?
 
   billing_address billing_address_customer?
 }
@@ -229,12 +229,12 @@ model product_variant {
 }
 
 model cart {
-  id        Int        @id @default(autoincrement())
-  user_fk   Int        @unique
-  user      users      @relation(fields: [user_fk], references: [id])
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  items     cartItem[]
+  id          Int        @id @default(autoincrement())
+  customer_fk Int        @unique
+  customer    customer   @relation(fields: [customer_fk], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  items       cartItem[]
 }
 
 model cartItem {

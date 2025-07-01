@@ -28,7 +28,7 @@ export class UsersController {
     private readonly usersService: UsersService,
     private authService: AuthService,
     private readonly emailService: EmailService,
-  ) {}
+  ) { }
 
   @Post()
   @ApiCreatedResponse({ type: UserResponse })
@@ -59,6 +59,13 @@ export class UsersController {
   @ApiOkResponse({ type: [UserResponse] })
   async getById(@Param('id') id: string) {
     return this.usersService.findOne(+id);
+  }
+
+  @Post('get-email')
+  @ApiOkResponse({ type: [UserResponse] })
+  async getByEmail(@Body() body: { email: string }) {
+    console.log(body)
+    return this.usersService.findOneByEmail(body.email);
   }
 
   @Put(':id')

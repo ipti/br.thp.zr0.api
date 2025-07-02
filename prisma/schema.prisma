@@ -80,6 +80,7 @@ model transformation_workshop {
   city_fk                         Int?
   production                      production[]
   order                           order[]
+  inventory                       inventory[]
 }
 
 model transformation_workshop_product {
@@ -154,6 +155,7 @@ model product {
   product_image                   product_image[]
   order_item                      order_item[]
   cartItem                        cartItem[]
+  inventory                       inventory[]
 }
 
 model product_image {
@@ -244,6 +246,17 @@ model cartItem {
   quantity   Int
   cart       cart    @relation(fields: [cart_fk], references: [id])
   product    product @relation(fields: [product_fk], references: [id])
+}
+
+model inventory {
+  transformation_workshop_fk Int
+  transformation_workshop    transformation_workshop @relation(fields: [transformation_workshop_fk], references: [id])
+  product_fk                 Int
+  product                    product                 @relation(fields: [product_fk], references: [id])
+  quantity                   Int
+
+  @@id([transformation_workshop_fk, product_fk])
+  @@unique([transformation_workshop_fk, product_fk])
 }
 
 enum CustomerType {

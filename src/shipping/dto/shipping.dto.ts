@@ -8,14 +8,17 @@ import {
   Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
 
 class OrderItemDto {
   @IsNumber()
   @Min(1)
+  @ApiProperty()
   productId: number;
 
   @IsNumber()
   @Min(1)
+  @ApiProperty()
   quantity: number;
 }
 
@@ -24,11 +27,14 @@ export class ShippingRequestDto {
   @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
+  @ApiProperty({type: OrderItemDto})
   orderItems: OrderItemDto[];
+
 
   @IsString()
   @Matches(/^\d{5}-?\d{3}$/, {
     message: 'Invalid Brazilian CEP format (expected 12345-678)',
   })
+  @ApiProperty()
   destinationZipCode: string;
 }

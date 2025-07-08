@@ -18,6 +18,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './shared/users.service';
 import { AuthService } from 'src/auth/shared/auth.service';
 import { EmailService } from 'src/utils/middleware/email.middleware';
+import { VerifyEmailDto } from './dto/verify-email.dto';
 
 @ApiTags('Users')
 // @ApiBearerAuth('access-token')
@@ -63,9 +64,9 @@ export class UsersController {
 
   @Post('get-email')
   @ApiOkResponse({ type: [UserResponse] })
-  async getByEmail(@Body() body: { email: string }) {
+  async getByEmail(@Body() body: VerifyEmailDto) {
     console.log(body)
-    return this.usersService.findOneByEmail(body.email);
+    return this.usersService.verifyByEmail(body.email);
   }
 
   @Put(':id')

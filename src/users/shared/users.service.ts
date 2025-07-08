@@ -8,7 +8,7 @@ import { UpdateUserDto } from '../dto/update-user.dto';
 
 @Injectable()
 export class UsersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
     const userRegistered = await this.prisma.users.findMany({
@@ -21,7 +21,6 @@ export class UsersService {
     const hashedPassword = await this.hashPassword(createUserDto.password);
 
     try {
-
       const transaction = await this.prisma.$transaction(async (tx) => {
         const createdUser = await tx.users.create({
           data: { ...createUserDto, password: hashedPassword },
@@ -36,7 +35,7 @@ export class UsersService {
         }
 
         return createdUser;
-      })
+      });
 
       return transaction;
     } catch (err) {
@@ -98,16 +97,23 @@ export class UsersService {
   }
 
   async findOneByEmail(email: string) {
-
     const user = await this.prisma.users.findFirst({
       where: { email: email },
     });
 
-      if (!user) {
+    if (!user) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
 
     return user;
+  }
+
+  async verifyByEmail(email: string) {
+    const user = await this.prisma.users.findFirst({
+      where: { email: email },
+    });
+
+    return { email: email, exists: user ? true : false };
   }
 
   async findVerifyEmail(id: number) {

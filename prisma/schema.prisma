@@ -31,18 +31,18 @@ model users {
 }
 
 model customer {
-  id             Int       @id @default(autoincrement())
-  cpf            String?   @db.VarChar(11)
-  cnpj           String?   @db.VarChar(14)
-  birthday       DateTime?
-  phone          String?
-  corporate_name String?   @db.VarChar(150)
-  trade_name     String?   @db.VarChar(150)
-  user           users     @relation(fields: [user_fk], references: [id])
-  user_fk        Int       @unique
-  cart           cart?
-
-  billing_address billing_address_customer?
+  id               Int                       @id @default(autoincrement())
+  cpf              String?                   @db.VarChar(11)
+  cnpj             String?                   @db.VarChar(14)
+  birthday         DateTime?
+  phone            String?
+  corporate_name   String?                   @db.VarChar(150)
+  trade_name       String?                   @db.VarChar(150)
+  user             users                     @relation(fields: [user_fk], references: [id])
+  user_fk          Int                       @unique
+  cart             cart?
+  address_customer address_customer[]
+  billing_address  billing_address_customer?
 }
 
 model billing_address_customer {
@@ -59,6 +59,23 @@ model billing_address_customer {
 
   customer    customer @relation(fields: [customer_fk], references: [id])
   customer_fk Int      @unique
+}
+
+model address_customer {
+  id           Int       @id @default(autoincrement())
+  name         String?
+  phone        String?
+  cep          String?
+  address      String
+  number       String
+  complement   String?   @db.VarChar(100)
+  neighborhood String?   @db.VarChar(100)
+  state        state?    @relation(fields: [state_fk], references: [id])
+  state_fk     Int?
+  city         city?     @relation(fields: [city_fk], references: [id])
+  city_fk      Int?
+  customer     customer? @relation(fields: [customer_fk], references: [id])
+  customer_fk  Int?
 }
 
 model transformation_workshop {
@@ -101,6 +118,8 @@ model state {
   city                     city[]
   transformation_workshop  transformation_workshop[]
   billing_address_customer billing_address_customer[]
+
+  address_customer address_customer[]
 }
 
 model city {
@@ -114,6 +133,7 @@ model city {
   state                    state                      @relation(fields: [state_fk], references: [id], onUpdate: Restrict, map: "city_ibfk_1")
   transformation_workshop  transformation_workshop[]
   billing_address_customer billing_address_customer[]
+  address_customer         address_customer[]
 
   @@index([state_fk], map: "state_fk")
 }

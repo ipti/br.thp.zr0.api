@@ -40,4 +40,11 @@ export class AuxUserController {
       req.user?.sub ?? 1,
     );
   }
+
+  @Get('token')
+  findToken(@Req() req: any) {
+    return this.userBffService.FindUserToken(
+      req.user?.sub ?? 1,
+    );
+  }
 }

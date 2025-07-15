@@ -9,7 +9,7 @@ export class UserBffService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
-  ) { }
+  ) {}
 
   async FindUserTranformationWorkshop(userId: number) {
     try {
@@ -21,12 +21,21 @@ export class UserBffService {
       const getUser = await this.prisma.users.findMany({
         where: {
           NOT: {
-            role: 'CUSTOMER'
-          }
-        }
-      })
+            role: 'CUSTOMER',
+          },
+        },
+      });
 
       return getUser;
+    } catch (err) {
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async FindUserToken(userId: number) {
+    try {
+      const user = await this.usersService.findOne(userId);
+      return user;
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
@@ -49,7 +58,7 @@ export class UserBffService {
             email: createUserDto.email,
             name: createUserDto.name,
             password: hashedPassword,
-            role: createUserDto.role
+            role: createUserDto.role,
           },
         });
 

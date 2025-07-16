@@ -34,7 +34,20 @@ export class UserBffService {
 
   async FindUserToken(userId: number) {
     try {
-      const user = await this.usersService.findOne(userId);
+      const user = await this.prisma.users.findUnique({
+        where: {
+          id: userId,
+        },
+       
+        select: {
+          customer: true,
+          password: false,
+          id: true,
+          email: true,
+          name: true,
+          username: true,
+        },
+      });
       return user;
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);

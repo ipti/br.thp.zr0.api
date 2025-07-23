@@ -19,6 +19,8 @@ export class AddressCustomerService {
           number: CreateAddressCustomerDto.number,
           complement: CreateAddressCustomerDto.complement,
           neighborhood: CreateAddressCustomerDto.neighborhood,
+          name: CreateAddressCustomerDto.name,
+          phone: CreateAddressCustomerDto.phone,
           state: { connect: { id: CreateAddressCustomerDto.stateId } },
           city: { connect: { id: CreateAddressCustomerDto.cityId } },
           customer: { connect: { id: CreateAddressCustomerDto.customerId } },
@@ -41,6 +43,8 @@ export class AddressCustomerService {
         number: true,
         complement: true,
         neighborhood: true,
+        name: true, 
+        phone: true
       };
       const filters = isEmpty(query) ? {} : { ...query };
 

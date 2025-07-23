@@ -1,19 +1,15 @@
-import { Controller, Get, Param, Query, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import {
   ApiCreatedResponse,
   ApiOkResponse,
-  ApiTags,
-  ApiBearerAuth
+  ApiTags
 } from '@nestjs/swagger';
 import { StateResponse } from './doc/state.response';
 import { QueryStateDto } from './dto/query-state.dto';
 import { stateService } from './shared/state.service';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @Controller('state')
 @ApiTags('State')
-@ApiBearerAuth('access-token')
-@UseGuards(JwtAuthGuard)
 export class StateController {
   constructor(private stateService: stateService) {}
 

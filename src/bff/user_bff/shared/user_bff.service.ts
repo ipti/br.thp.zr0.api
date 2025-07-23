@@ -40,7 +40,11 @@ export class UserBffService {
         },
        
         select: {
-          customer: true,
+          customer: {
+            include: {
+              billing_address: true
+            }
+          },
           password: false,
           id: true,
           email: true,

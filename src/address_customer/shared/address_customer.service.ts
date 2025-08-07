@@ -64,6 +64,7 @@ export class AddressCustomerService {
   async findOne(id: number) {
     const AddressCustomer = await this.prisma.address_customer.findUnique({
       where: { id: id },
+      include: { state: true, city: true },
     });
 
     if (!AddressCustomer) {

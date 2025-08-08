@@ -42,7 +42,12 @@ export class UserBffService {
         select: {
           customer: {
             include: {
-              billing_address: true
+              billing_address: {
+                include: {
+                  city: true,
+                  state: true,
+                }
+              }
             }
           },
           password: false,

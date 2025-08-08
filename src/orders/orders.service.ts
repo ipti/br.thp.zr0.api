@@ -6,10 +6,10 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async create(createOrderDto: CreateOrderDto) {
-    const { userId, items, observation } = createOrderDto;
+    const { userId, items, observation, address } = createOrderDto;
 
     // Busca os dados reais dos produtos e variantes
     const orderItems = await Promise.all(
@@ -41,22 +41,43 @@ export class OrdersService {
     const total = orderItems.reduce((acc, item) => acc + item.total_price, 0);
 
     // Cria o pedido
-    const order = await this.prisma.order.create({
-      data: {
-        user: { connect: { id: userId } },
-        total_amount: total,
-        status: 'PENDING',
-        notes: observation,
-        order_items: {
-          create: orderItems,
+    const transaction = await this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.create({
+        data: {
+          user: { connect: { id: userId } },
+          total_amount: total,
+          status: 'PENDING',
+          notes: observation,
+          order_items: {
+            create: orderItems,
+          },
         },
-      },
-      include: {
-        order_items: true,
-      },
-    });
+        include: {
+          order_items: true,
+        },
+      });
 
-    return order;
+      if (address) {
+
+        await tx.order_delivery_address.create({
+          data: {
+            cep: address?.cep,
+            address: address.address,
+            number: address.number,
+            complement: address.complement,
+            neighborhood: address.neighborhood,
+            state: { connect: { id: address.stateId } },
+            city: { connect: { id: address.cityId } },
+            order: { connect: { id: order.id } },
+          },
+        })
+
+      }
+
+      return order;
+    })
+    return transaction;
+
   }
 
   async findAll() {

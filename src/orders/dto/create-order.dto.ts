@@ -2,7 +2,10 @@ import {
   IsArray,
   IsInt,
   IsNotEmpty,
+  IsNumber,
   IsOptional,
+  IsString,
+  MaxLength,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -16,6 +19,61 @@ export class CreateOrderItemDto {
   @IsInt()
   @ApiProperty()
   quantity: number;
+}
+
+export class AddressDto {
+
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(150)
+  @ApiProperty()
+  name: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  @ApiProperty()
+  phone: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  @ApiProperty()
+  cep: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(191)
+  @ApiProperty()
+  address: string;
+
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(100)
+  @ApiProperty()
+  number: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @ApiProperty()
+  complement: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @ApiProperty()
+  neighborhood: string;
+
+  @IsOptional()
+  @IsNumber()
+  @ApiProperty()
+  stateId: number;
+
+  @IsOptional()
+  @IsNumber()
+  @ApiProperty()
+  cityId: number;
 }
 
 export class CreateOrderDto {
@@ -33,4 +91,9 @@ export class CreateOrderDto {
   @ApiProperty()
   @IsOptional()
   observation?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @Type(() => AddressDto)
+  address?: AddressDto;
 }

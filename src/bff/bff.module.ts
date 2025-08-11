@@ -3,6 +3,7 @@ import { AuxUserBffModule } from './aux_user_bff/aux_user_bff.module';
 import { TransformationWorkshopBffModule } from './transformation_workshop_bff/transformation_workshop_bff.module';
 import { UserBffModule } from './user_bff/user_bff.module';
 import { TransformationWorkshopProductBffModule } from './transformation_workshop_product_bff/transformation_workshop_bff.module';
+import { ProductBffModule } from './product_bff/product_bff.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { TransformationWorkshopProductBffModule } from './transformation_worksho
     TransformationWorkshopBffModule,
     TransformationWorkshopProductBffModule,
     UserBffModule,
+    ProductBffModule
   ],
 })
 export class BFFModule {}

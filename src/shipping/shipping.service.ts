@@ -19,6 +19,7 @@ export class ShippingService {
     const products = await this.fetchProductsWithWorkshop(
       dto.orderItems.map((i) => i.productId),
     );
+
     const itemsGrouped = this.groupItemsByWorkshop(dto, products);
 
     let totalShippingCost = 0;
@@ -28,6 +29,7 @@ export class ShippingService {
       result: ShippingCalculationResult;
     }[] = [];
 
+    console.log('Items grouped by workshop:', itemsGrouped);
     for (const [workshopId, items] of Object.entries(itemsGrouped)) {
       const context = await this.buildShippingContext(
         Number(workshopId),
@@ -35,6 +37,10 @@ export class ShippingService {
         dto.destinationZipCode,
       );
 
+      const total = items.reduce((acc, item) => acc + item.quantity, 0);
+      const quantWorkshop = await this.algothmsMoneyShipping(total, items);
+
+      console.log(quantWorkshop)
       const result = await this.meuEnvioShippingStrategy.calculate(context);
       totalShippingCost += result.bestOption.cost;
       shipments.push({ workshopId: Number(workshopId), result });
@@ -150,6 +156,23 @@ export class ShippingService {
         quantity: item.quantity,
       })),
     };
+  }
+
+  private async algothmsMoneyShipping(
+    quantityTotal: number,
+    products: any,
+  ) {
+    const resultado = {};
+    let restante = quantityTotal;
+    for (const product of products) {
+      const qtd = Math.floor(restante / product.quantity);
+      if (qtd > 0) {
+        resultado[product.quantity] = qtd;
+        restante -= qtd * product.quantity;
+      }
+
+      return resultado;
+    }
   }
 }
 

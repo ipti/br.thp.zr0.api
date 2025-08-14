@@ -16,9 +16,16 @@ export class Shipping2Service {
     const shipments: {
       workshopId: number;
       result: ShippingCalculationResult;
+      quantity: number;
+      workshopName: string,
+      productId: number,
+      productName: string
     }[] = [];
 
     for (const orderItems of dto.orderItems) {
+      const product = await this.prisma.product.findUnique({
+        where: { id: orderItems.productId },
+      });
       const product_tw =
         await this.prisma.transformation_workshop_product.findMany({
           where: { product_fk: orderItems.productId },
@@ -35,44 +42,63 @@ export class Shipping2Service {
         quantity_tw,
       );
 
-      // for (const [workshopId, quant] in Object.entries(ordemItens)) {
+      const array = Object.entries(ordemItens).map(
+        ([workshopId, quantity]) => ({
+          workshopId,
+          quantity,
+        }),
+      );
 
-  
-      //   const result = await this.meuEnvioShippingStrategy.calculate(context);
+      for (const item of array) {
+        const workshop = await this.prisma.transformation_workshop.findUnique({
+          where: { id: Number(item.workshopId) },
+          select: { cep: true, name: true, state: true, city: true },
+        });
 
+        if (!workshop) throw new Error(`Workshop ${item.workshopId} not found`);
+        const itens = await this.buildShippingContext(
+          workshop.cep ?? '',
+          [
+            {
+              product: product,
+              quantity: Number(item.quantity),
+            },
+          ],
+          dto.destinationZipCode,
+        );
+        const result = await this.meuEnvioShippingStrategy.calculate(itens);
 
-      //   console.log(ordemItens);
-      // }
+        shipments.push({
+          result: result,
+          workshopId: Number(item.workshopId),
+          quantity: Number(item.quantity),
+          workshopName: workshop.name,
+          productId: product?.id ?? 0,
+          productName: product?.name ?? '',
+        });
+      }
 
-      return shipments;
     }
+    return shipments;
   }
 
   private async buildShippingContext(
-    workshopId: number,
+    workshopCep: string,
     items: {
-      productId: number;
       quantity: number;
-      product: ProductWithWorkshop;
+      product: ProductType;
     }[],
     destinationZipCode: string,
   ): Promise<ShippingContext> {
-    const workshop = await this.prisma.transformation_workshop.findUnique({
-      where: { id: workshopId },
-      select: { cep: true },
-    });
-
-    if (!workshop) throw new Error(`Workshop ${workshopId} not found`);
-
     return {
-      originZipCode: workshop.cep ?? '',
+      originZipCode: workshopCep,
       destinationZipCode,
       products: items.map((item) => ({
-        id: item.productId.toString(), // pode ser string ou number, conforme API
-        width: item.product.width ?? 0,
-        height: item.product.height ?? 0,
-        length: item.product.length ?? 0,
-        weight: item.product.weight ?? 0,
+        id: item.product?.id.toString() ?? '', // pode ser string ou number, conforme API
+        width: item.product?.width ?? 0,
+        height: item.product?.height ?? 0,
+        length: item.product?.length ?? 0,
+        weight: item.product?.weight ?? 0,
         insuranceValue: 0, // opcional, ajustar se precisar baseado no subtotal ou preço
         quantity: item.quantity,
       })),
@@ -101,18 +127,16 @@ export class Shipping2Service {
   }
 }
 
-
-type ProductWithWorkshop = {
+type ProductType = {
   id: number;
-  weight: number | null;
-  height: number | null;
-  width: number | null;
-  length: number | null;
-  transformation_workshop_product: {
-    id: number;
-    transformation_workshop: {
-      id: number;
-      cep: string | null;
-    } | null;
-  }[];
-};
+  name: string;
+  description: string;
+  price: number | null;
+  createdAt: Date;
+  updatedAt: Date;
+  category_fk: number;
+  weight: number;
+  height: number;
+  width: number;
+  length: number;
+} | null;

@@ -6,10 +6,12 @@ import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createOrderDto: CreateOrderDto) {
     const { userId, items, observation, address } = createOrderDto;
+
+    const workshop: number[] = [];
 
     // Busca os dados reais dos produtos e variantes
     const orderItems = await Promise.all(
@@ -28,11 +30,15 @@ export class OrdersService {
 
         const totalPrice = unitPrice * item.quantity;
 
+        if (!workshop.find((id) => id === item.workshopId))
+          workshop.push(item.workshopId);
+
         return {
           quantity: item.quantity,
           unit_price: unitPrice,
           total_price: totalPrice,
           product: { connect: { id: item.productId } },
+          delivery_estimate: item.delivery_estimate,
         };
       }),
     );
@@ -42,42 +48,42 @@ export class OrdersService {
 
     // Cria o pedido
     const transaction = await this.prisma.$transaction(async (tx) => {
-      const order = await tx.order.create({
-        data: {
-          user: { connect: { id: userId } },
-          total_amount: total,
-          status: 'PENDING',
-          notes: observation,
-          order_items: {
-            create: orderItems,
-          },
-        },
-        include: {
-          order_items: true,
-        },
-      });
-
-      if (address) {
-
-        await tx.order_delivery_address.create({
+      for (const workshopId of workshop) {
+        const order = await tx.order.create({
           data: {
-            cep: address?.cep,
-            address: address.address,
-            number: address.number,
-            complement: address.complement,
-            neighborhood: address.neighborhood,
-            state: { connect: { id: address.stateId } },
-            city: { connect: { id: address.cityId } },
-            order: { connect: { id: order.id } },
+            user: { connect: { id: userId } },
+            total_amount: total,
+            status: 'PENDING',
+            notes: observation,
+            workshop: { connect: { id: workshopId } },
+            order_items: {
+              create: orderItems,
+            },
           },
-        })
+          include: {
+            order_items: true,
+          },
+        });
 
+        if (address) {
+          await tx.order_delivery_address.create({
+            data: {
+              cep: address?.cep,
+              address: address.address,
+              number: address.number,
+              complement: address.complement,
+              neighborhood: address.neighborhood,
+              state: { connect: { id: address.stateId } },
+              city: { connect: { id: address.cityId } },
+              order: { connect: { id: order.id } },
+            },
+          });
+        }
       }
 
-      return order;
-    })
+      return { message: 'Pedido criado com sucesso!' };
+    });
     return transaction;
-
   }
 
   async findAll() {

@@ -3,6 +3,7 @@ import {
   IsInt,
   IsNotEmpty,
   IsNumber,
+  IsObject,
   IsOptional,
   IsString,
   MaxLength,
@@ -18,7 +19,15 @@ export class CreateOrderItemDto {
 
   @IsInt()
   @ApiProperty()
+  workshopId: number;
+
+  @IsInt()
+  @ApiProperty()
   quantity: number;
+
+  @ApiProperty()
+  @IsObject()
+  delivery_estimate: Record<string, any>;
 }
 
 export class AddressDto {

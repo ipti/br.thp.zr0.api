@@ -4,6 +4,7 @@ import { TransformationWorkshopBffModule } from './transformation_workshop_bff/t
 import { UserBffModule } from './user_bff/user_bff.module';
 import { TransformationWorkshopProductBffModule } from './transformation_workshop_product_bff/transformation_workshop_bff.module';
 import { ProductBffModule } from './product_bff/product_bff.module';
+import { OrdersBffModule } from './orders_bff/orders_bff.module';
 
 @Module({
   imports: [
@@ -11,7 +12,8 @@ import { ProductBffModule } from './product_bff/product_bff.module';
     TransformationWorkshopBffModule,
     TransformationWorkshopProductBffModule,
     UserBffModule,
-    ProductBffModule
+    ProductBffModule,
+    OrdersBffModule
   ],
 })
 export class BFFModule {}

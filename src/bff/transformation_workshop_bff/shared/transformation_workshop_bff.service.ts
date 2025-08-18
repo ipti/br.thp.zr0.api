@@ -58,6 +58,15 @@ export class TransformationWorkshopBffService {
           include: {
             state: true,
             city: true,
+            order: {
+              include: {
+                _count: {
+                  select: {
+                    order_items: true
+                  }
+                }
+              }
+            },
             transformation_workshop_product: {
               select: {
                 id: true,

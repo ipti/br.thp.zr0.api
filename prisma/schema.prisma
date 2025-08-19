@@ -190,6 +190,7 @@ model product_image {
 
 model order {
   id          Int                      @id @default(autoincrement())
+  uid         String                   @unique @default(cuid())
   user_fk     Int
   user        users                    @relation(fields: [user_fk], references: [id])
   workshop_fk Int?

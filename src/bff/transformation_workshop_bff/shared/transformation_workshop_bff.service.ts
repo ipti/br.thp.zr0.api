@@ -8,7 +8,7 @@ export class TransformationWorkshopBffService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
-  ) { }
+  ) {}
 
   async transformationWorkshopUser(userId: number) {
     try {
@@ -62,10 +62,10 @@ export class TransformationWorkshopBffService {
               include: {
                 _count: {
                   select: {
-                    order_items: true
-                  }
-                }
-              }
+                    order_items: true,
+                  },
+                },
+              },
             },
             transformation_workshop_product: {
               select: {
@@ -73,10 +73,10 @@ export class TransformationWorkshopBffService {
                 quantity: true,
                 product: {
                   include: {
-                    product_image: true
-                  }
+                    product_image: true,
+                  },
                 },
-              }
+              },
             },
             transformation_workshop_user: {
               select: {
@@ -133,7 +133,7 @@ export class TransformationWorkshopBffService {
     try {
       const members = await this.prisma.transformation_workshop.findUnique({
         where: {
-          id: id
+          id: id,
         },
         select: {
           transformation_workshop_user: {
@@ -143,12 +143,28 @@ export class TransformationWorkshopBffService {
                   name: true,
                   email: true,
                   role: true,
-                }
-              }
-            }
-          }
-        }
-      })
+                },
+              },
+            },
+          },
+        },
+      });
+      return members;
+    } catch (err) {
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getOrdersTransformationWorkshop(id: number) {
+    try {
+      const members = await this.prisma.transformation_workshop.findUnique({
+        where: {
+          id: id,
+        },
+        select: {
+          order: true,
+        },
+      });
       return members;
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
@@ -159,20 +175,20 @@ export class TransformationWorkshopBffService {
     try {
       const members = await this.prisma.transformation_workshop.findUnique({
         where: {
-          id: id
+          id: id,
         },
         select: {
           transformation_workshop_product: {
             include: {
               product: {
                 include: {
-                  product_image: true
-                }
-              }
-            }
-          }
-        }
-      })
+                  product_image: true,
+                },
+              },
+            },
+          },
+        },
+      });
       return members;
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);

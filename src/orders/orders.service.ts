@@ -3,81 +3,129 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Prisma } from '@prisma/client';
-
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createOrderDto: CreateOrderDto) {
     const { userId, items, observation, address } = createOrderDto;
 
-    // Busca os dados reais dos produtos e variantes
-    const orderItems = await Promise.all(
-      items.map(async (item) => {
-        const product = await this.prisma.product.findUnique({
-          where: { id: item.productId },
-        });
-        if (!product) {
-          throw new HttpException(
-            `Produto ${item.productId} não encontrado`,
-            HttpStatus.BAD_REQUEST,
-          );
-        }
+    // Agrupar por workshop
+    const workshops = [...new Set(items.map((i) => i.workshopId))];
 
-        const unitPrice = product.price ?? 0;
+    // Buscar todos os produtos de uma vez
+    const productIds = items.map((i) => i.productId);
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: productIds } },
+    });
+    const productMap = new Map(products.map((p) => [p.id, p]));
 
-        const totalPrice = unitPrice * item.quantity;
-
-        return {
-          quantity: item.quantity,
-          unit_price: unitPrice,
-          total_price: totalPrice,
-          product: { connect: { id: item.productId } },
-        };
-      }),
-    );
-
-    // Calcula o total do pedido
-    const total = orderItems.reduce((acc, item) => acc + item.total_price, 0);
-
-    // Cria o pedido
-    const transaction = await this.prisma.$transaction(async (tx) => {
-      const order = await tx.order.create({
-        data: {
-          user: { connect: { id: userId } },
-          total_amount: total,
-          status: 'PENDING',
-          notes: observation,
-          order_items: {
-            create: orderItems,
-          },
-        },
-        include: {
-          order_items: true,
+    // Buscar todos os produtos de workshop de uma vez
+    const workshopProducts =
+      await this.prisma.transformation_workshop_product.findMany({
+        where: {
+          transformation_workshop_fk: { in: workshops },
+          product_fk: { in: productIds },
         },
       });
+    const workshopProductMap = new Map(
+      workshopProducts.map((wp) => [
+        `${wp.transformation_workshop_fk}-${wp.product_fk}`,
+        wp,
+      ]),
+    );
 
-      if (address) {
+    return this.prisma.$transaction(async (tx) => {
+      const createdOrders: any = [];
 
-        await tx.order_delivery_address.create({
+      for (const workshopId of workshops) {
+        const itemsForWorkshop = items
+          .filter((i) => i.workshopId === workshopId)
+          .map((item) => {
+            const product = productMap.get(item.productId);
+            if (!product) {
+              throw new HttpException(
+                `Produto ${item.productId} não encontrado`,
+                HttpStatus.BAD_REQUEST,
+              );
+            }
+
+            const unitPrice = product.price ?? 0;
+            const totalPrice = unitPrice * item.quantity;
+
+            // Validação de estoque
+            const wpKey = `${workshopId}-${item.productId}`;
+            const twProduct = workshopProductMap.get(wpKey);
+            if (!twProduct || twProduct.quantity < item.quantity) {
+              throw new HttpException(
+                `Estoque insuficiente para produto ${item.productId} no workshop ${workshopId}`,
+                HttpStatus.BAD_REQUEST,
+              );
+            }
+
+            return {
+              quantity: item.quantity,
+              unit_price: unitPrice,
+              total_price: totalPrice,
+              product: { connect: { id: item.productId } },
+              delivery_estimate: item.delivery_estimate,
+            };
+          });
+
+        const total = itemsForWorkshop.reduce(
+          (acc, i) => acc + i.total_price,
+          0,
+        );
+
+        // Criar pedido
+        const order = await tx.order.create({
           data: {
-            cep: address?.cep,
-            address: address.address,
-            number: address.number,
-            complement: address.complement,
-            neighborhood: address.neighborhood,
-            state: { connect: { id: address.stateId } },
-            city: { connect: { id: address.cityId } },
-            order: { connect: { id: order.id } },
+            user: { connect: { id: userId } },
+            total_amount: total,
+            status: 'PENDING',
+            notes: observation,
+            workshop: { connect: { id: workshopId } },
+            order_items: { create: itemsForWorkshop },
           },
-        })
+          include: { order_items: true },
+        });
 
+        // Criar endereço (se houver)
+        if (address) {
+          await tx.order_delivery_address.create({
+            data: {
+              cep: address.cep,
+              address: address.address,
+              number: address.number,
+              complement: address.complement,
+              neighborhood: address.neighborhood,
+              state: { connect: { id: address.stateId } },
+              city: { connect: { id: address.cityId } },
+              order: { connect: { id: order.id } },
+            },
+          });
+        }
+
+        // Atualizar estoque dos produtos
+        for (const item of itemsForWorkshop) {
+          const wpKey = `${workshopId}-${item.product.connect.id}`;
+          const twProduct = workshopProductMap.get(wpKey);
+          if (twProduct) {
+            await tx.transformation_workshop_product.update({
+              where: { id: twProduct.id },
+              data: { quantity: twProduct.quantity - item.quantity },
+            });
+          }
+        }
+
+        createdOrders.push(order);
       }
 
-      return order;
-    })
-    return transaction;
-
+      return {
+        message: 'Pedidos criados com sucesso!',
+        orders: createdOrders.map((o) => ({ id: o.id, uid: o.uid })),
+      };
+    });
   }
 
   async findAll() {

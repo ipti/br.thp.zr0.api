@@ -58,6 +58,16 @@ export class TransformationWorkshopBffController {
     );
   }
 
+  @Get('order')
+  @ApiCreatedResponse()
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  async transformationWorkshopOrder(@Query('id') id: number) {
+    return this.transformationWorkshopBffService.getOrdersTransformationWorkshop(
+      id,
+    );
+  }
+
   @Post('add-user')
   create(@Body() body: AddUserTransformationWorkshopDto, @Req() req: Request) {
     return this.transformationWorkshopBffService.addUserTransformationWorkshop(

@@ -190,6 +190,7 @@ model product_image {
 
 model order {
   id          Int                      @id @default(autoincrement())
+  uid         String                   @unique @default(cuid())
   user_fk     Int
   user        users                    @relation(fields: [user_fk], references: [id])
   workshop_fk Int?
@@ -207,7 +208,6 @@ model order {
   notes                  String?                 @db.VarChar(500)
   order_delivery_address order_delivery_address?
 }
-
 model order_delivery_address {
   id           Int     @id @default(autoincrement())
   name         String?
@@ -240,6 +240,8 @@ model order_item {
   quantity    Int
   unit_price  Float
   total_price Float
+
+  delivery_estimate Json?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

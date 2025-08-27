@@ -19,7 +19,8 @@ export class ShippingService {
     const products = await this.fetchProductsWithWorkshop(
       dto.orderItems.map((i) => i.productId),
     );
-    const itemsGrouped = this.groupItemsByWorkshop(dto, products);
+
+    const itemsGrouped = await this.groupItemsByWorkshop(dto, products);
 
     let totalShippingCost = 0;
 
@@ -28,6 +29,7 @@ export class ShippingService {
       result: ShippingCalculationResult;
     }[] = [];
 
+    console.log('Items grouped by workshop:', itemsGrouped);
     for (const [workshopId, items] of Object.entries(itemsGrouped)) {
       const context = await this.buildShippingContext(
         Number(workshopId),
@@ -35,6 +37,10 @@ export class ShippingService {
         dto.destinationZipCode,
       );
 
+      const total = items.reduce((acc, item) => acc + item.quantity, 0);
+      const quantWorkshop = await this.algothmsMoneyShipping(total, items);
+
+      console.log(quantWorkshop);
       const result = await this.meuEnvioShippingStrategy.calculate(context);
       totalShippingCost += result.bestOption.cost;
       shipments.push({ workshopId: Number(workshopId), result });
@@ -69,17 +75,20 @@ export class ShippingService {
     });
   }
 
-  private groupItemsByWorkshop(
+  private async groupItemsByWorkshop(
     dto: ShippingRequestDto,
     products: ProductWithWorkshop[],
-  ): Record<
-    number,
-    { productId: number; quantity: number; product: ProductWithWorkshop }[]
+  ): Promise<
+    Record<
+      number,
+      { productId: number; quantity: number; product: ProductWithWorkshop }[]
+    >
   > {
     type GroupedItem = {
       productId: number;
       quantity: number;
       product: ProductWithWorkshop;
+      quantity_tw: number | undefined;
     };
 
     const grouped: Record<number, GroupedItem[]> = {};
@@ -106,6 +115,15 @@ export class ShippingService {
       for (const association of workshopAssociations) {
         const workshopId = association.transformation_workshop!.id;
 
+        const product_tw =
+          await this.prisma.transformation_workshop_product.findFirst({
+            where: {
+              product_fk: item.productId,
+              transformation_workshop_fk: workshopId,
+            },
+            select: { quantity: true, id: true },
+          });
+
         if (!grouped[workshopId]) {
           grouped[workshopId] = [];
         }
@@ -113,6 +131,7 @@ export class ShippingService {
         grouped[workshopId].push({
           productId: item.productId,
           quantity: item.quantity,
+          quantity_tw: product_tw?.quantity, // Mantém a mesma quantidade para cada workshop
           product,
         });
       }
@@ -150,6 +169,20 @@ export class ShippingService {
         quantity: item.quantity,
       })),
     };
+  }
+
+  private async algothmsMoneyShipping(quantityTotal: number, products: any) {
+    const resultado = {};
+    let restante = quantityTotal;
+    for (const product of products) {
+      const qtd = Math.floor(restante / product.quantity_tw);
+      if (qtd > 0) {
+        resultado[product.quantity_tw] = qtd;
+        restante -= qtd * product.quantity_tw;
+      }
+
+      return resultado;
+    }
   }
 }
 

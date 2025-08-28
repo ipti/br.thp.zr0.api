@@ -15,7 +15,7 @@ import { ApiProperty } from '@nestjs/swagger';
 export class CreateOrderItemDto {
   @IsInt()
   @ApiProperty()
-  productId: number;
+  productId: string;
 
   @IsInt()
   @ApiProperty()

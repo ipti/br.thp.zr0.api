@@ -63,6 +63,12 @@ export class ProductController {
     return this.productsService.findOne(+id);
   }
 
+  @Get('get-uid/:uid')
+  @ApiOkResponse({ type: [ProductResponse] })
+  async getByUId(@Param('uid') uid: string) {
+    return this.productsService.findOneUid(uid);
+  }
+
   @Put(':id')
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)

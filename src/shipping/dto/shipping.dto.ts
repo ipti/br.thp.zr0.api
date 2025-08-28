@@ -11,10 +11,9 @@ import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 class OrderItemDto {
-  @IsNumber()
-  @Min(1)
+  @IsString()
   @ApiProperty()
-  productId: number;
+  productId: string;
 
   @IsNumber()
   @Min(1)
@@ -27,9 +26,8 @@ export class ShippingRequestDto {
   @IsNotEmpty()
   @ValidateNested({ each: true })
   @Type(() => OrderItemDto)
-  @ApiProperty({type: OrderItemDto})
+  @ApiProperty({ type: OrderItemDto })
   orderItems: OrderItemDto[];
-
 
   @IsString()
   @Matches(/^\d{5}-?\d{3}$/, {

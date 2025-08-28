@@ -159,7 +159,8 @@ model transformation_workshop_user {
 }
 
 model product {
-  id                              Int                               @id @default(autoincrement())
+  id  Int    @id @default(autoincrement())
+  uid String @default(uuid())
   name                            String
   description                     String
   price                           Float?
@@ -208,6 +209,7 @@ model order {
   notes                  String?                 @db.VarChar(500)
   order_delivery_address order_delivery_address?
 }
+
 model order_delivery_address {
   id           Int     @id @default(autoincrement())
   name         String?

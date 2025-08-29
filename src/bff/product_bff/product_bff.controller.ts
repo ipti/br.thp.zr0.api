@@ -5,18 +5,20 @@ import { ProductBffService } from './shared/product_bff.service';
 @ApiTags('Product-Bff')
 @Controller('product-bff')
 export class ProductBffController {
-  constructor(
-    private readonly productBffService: ProductBffService,
-  ) { }
+  constructor(private readonly productBffService: ProductBffService) { }
 
-
-
-  @Get(':idProduct')
-  findOne(@Param('idProduct') idProduct: string) {
-    return this.productBffService.QuantProducts(
-      +idProduct,
-    );
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.productBffService.QuantProducts(id);
   }
 
+  @Get('uid/:uidProduct')
+  findOneUid(@Param('uidProduct') uidProduct: string) {
+    return this.productBffService.QuantProductsUid(uidProduct);
+  }
 
+  @Get('quantity/:uidProduct')
+  findOneQuantity(@Param('uidProduct') uidProduct: string) {
+    return this.productBffService.OnlyQuantProducts(uidProduct);
+  }
 }

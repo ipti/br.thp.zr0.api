@@ -13,9 +13,9 @@ import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class CreateOrderItemDto {
-  @IsInt()
+  @IsString()
   @ApiProperty()
-  productId: number;
+  productId: string;
 
   @IsInt()
   @ApiProperty()

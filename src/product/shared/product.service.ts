@@ -60,6 +60,7 @@ export class ProductsService {
       name: true,
       description: true,
       price: true,
+      uid: true,
     };
     const filters = isEmpty(query) ? {} : { ...query };
 
@@ -73,8 +74,29 @@ export class ProductsService {
     const product = await this.prisma.product.findUnique({
       where: { id: id },
       include: {
-        product_image: true
-      }
+        product_image: true,
+      },
+    });
+
+    if (!product) {
+      throw new HttpException('Product not found', HttpStatus.NOT_FOUND);
+    }
+
+    return product;
+  }
+
+  async findOneUid(uid: string) {
+    const product = await this.prisma.product.findFirst({
+      where: { uid: uid },
+      select: {
+        name: true,
+        uid: true,
+        description: true,
+        createdAt: true,
+        price: true,
+        product_image: true,
+        id: true,
+      },
     });
 
     if (!product) {

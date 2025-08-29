@@ -14,18 +14,18 @@ export class OrdersService {
     const workshops = [...new Set(items.map((i) => i.workshopId))];
 
     // Buscar todos os produtos de uma vez
-    const productIds = items.map((i) => i.productId);
+    const productIds = items.map((i) => String(i.productId));
     const products = await this.prisma.product.findMany({
-      where: { id: { in: productIds } },
+      where: { uid: { in: productIds } },
     });
-    const productMap = new Map(products.map((p) => [p.id, p]));
+    const productMap = new Map(products.map((p) => [p.uid, p]));
 
     // Buscar todos os produtos de workshop de uma vez
     const workshopProducts =
       await this.prisma.transformation_workshop_product.findMany({
         where: {
           transformation_workshop_fk: { in: workshops },
-          product_fk: { in: productIds },
+          product_fk: { in: products.map((i) => i.id) },
         },
       });
     const workshopProductMap = new Map(
@@ -54,8 +54,9 @@ export class OrdersService {
             const totalPrice = unitPrice * item.quantity;
 
             // Validação de estoque
-            const wpKey = `${workshopId}-${item.productId}`;
+            const wpKey = `${workshopId}-${product.id}`;
             const twProduct = workshopProductMap.get(wpKey);
+
             if (!twProduct || twProduct.quantity < item.quantity) {
               throw new HttpException(
                 `Estoque insuficiente para produto ${item.productId} no workshop ${workshopId}`,
@@ -67,7 +68,7 @@ export class OrdersService {
               quantity: item.quantity,
               unit_price: unitPrice,
               total_price: totalPrice,
-              product: { connect: { id: item.productId } },
+              product: { connect: { id: product.id } },
               delivery_estimate: item.delivery_estimate,
             };
           });

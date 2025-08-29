@@ -54,8 +54,9 @@ export class OrdersService {
             const totalPrice = unitPrice * item.quantity;
 
             // Validação de estoque
-            const wpKey = `${workshopId}-${item.productId}`;
+            const wpKey = `${workshopId}-${product.id}`;
             const twProduct = workshopProductMap.get(wpKey);
+
             if (!twProduct || twProduct.quantity < item.quantity) {
               throw new HttpException(
                 `Estoque insuficiente para produto ${item.productId} no workshop ${workshopId}`,

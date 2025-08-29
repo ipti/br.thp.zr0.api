@@ -18,7 +18,7 @@ export class ShippingService {
       result: ShippingCalculationResult;
       quantity: number;
       workshopName: string,
-      productId: number,
+      productId: string,
       productName: string
     }[] = [];
 
@@ -73,7 +73,7 @@ export class ShippingService {
           workshopId: Number(item.workshopId),
           quantity: Number(item.quantity),
           workshopName: workshop.name,
-          productId: product?.id ?? 0,
+          productId: product?.uid ?? '',
           productName: product?.name ?? '',
         });
       }

@@ -10,16 +10,16 @@ export class ShippingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly meuEnvioShippingStrategy: MeuEnvioShippingStrategy,
-  ) { }
+  ) {}
 
   async calculate(dto: ShippingRequestDto) {
     const shipments: {
       workshopId: number;
       result: ShippingCalculationResult;
       quantity: number;
-      workshopName: string,
-      productId: string,
-      productName: string
+      workshopName: string;
+      productId: string;
+      productName: string;
     }[] = [];
 
     for (const orderItems of dto.orderItems) {
@@ -77,7 +77,6 @@ export class ShippingService {
           productName: product?.name ?? '',
         });
       }
-
     }
     return shipments;
   }
@@ -114,7 +113,10 @@ export class ShippingService {
     const resultado = {};
     let restante = quantityTotal;
     for (const quantity_tw_max of tw) {
-      const qtd = Math.ceil(restante / quantity_tw_max.quantity);
+      const qtd =
+        quantity_tw_max.quantity === 0
+          ? 0
+          : Math.ceil(restante / quantity_tw_max.quantity);
       if (qtd > 0) {
         resultado[quantity_tw_max.workshopId!] =
           restante < quantity_tw_max.quantity
@@ -123,6 +125,7 @@ export class ShippingService {
         restante = restante - quantity_tw_max.quantity;
       }
     }
+
     return resultado;
   }
 }

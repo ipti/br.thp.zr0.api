@@ -16,7 +16,7 @@
     "start:prod": "node dist/src/main.js",
     "prisma:migrate-dev": "npx prisma migrate dev",
     "prisma:migrate-prod": "npx prisma migrate deploy",
-    "start:migrate:prod": "npm run prisma:migrate-prod && npm run seed && npm run start:prod",
+    "start:migrate:prod": "npm run prisma:migrate-prod && npm run start:prod",
     "prisma:create-migration": "npx prisma migrate dev --create-only --preview-feature",
     "prisma:apply-migration": "npx prisma migrate dev --preview-feature",
     "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",

@@ -86,20 +86,6 @@ export class InventoryService {
         throw new HttpException('Inventory not found', HttpStatus.NOT_FOUND);
       }
 
-      if (
-        updateInventoryDto.quantity !== undefined &&
-        updateInventoryDto.quantity < inventory.quantity
-      ) {
-        const difference = inventory.quantity - updateInventoryDto.quantity;
-
-        if (difference > inventory.quantity) {
-          throw new HttpException('Not enough inventory to reduce', HttpStatus.BAD_REQUEST);
-        }
-      }
-
-      const quantityToAdd = updateInventoryDto.quantity ?? 0;
-      const newQuantity = inventory.quantity + quantityToAdd;
-
       const updatedInventory = await this.prisma.inventory.update({
         where: {
           transformation_workshop_fk_product_fk: {
@@ -109,7 +95,6 @@ export class InventoryService {
         },
         data: {
           ...updateInventoryDto,
-          quantity: newQuantity
         },
       });
 

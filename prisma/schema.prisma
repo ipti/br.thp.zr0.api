@@ -254,9 +254,29 @@ model inventory {
   product_fk                 Int
   product                    product                 @relation(fields: [product_fk], references: [id])
   quantity                   Int
+  inventoryEntries           inventoryEntry[]
+  inventoryExits             inventoryExit[]
 
   @@id([transformation_workshop_fk, product_fk])
   @@unique([transformation_workshop_fk, product_fk])
+}
+
+model inventoryEntry {
+  id                         Int @id @default(autoincrement())
+  transformation_workshop_fk Int
+  product_fk                 Int
+  quantity                   Int
+
+  inventory inventory @relation(fields: [transformation_workshop_fk, product_fk], references: [transformation_workshop_fk, product_fk], onDelete: Cascade)
+}
+
+model inventoryExit {
+  id                         Int @id @default(autoincrement())
+  transformation_workshop_fk Int
+  product_fk                 Int
+  quantity                   Int
+
+  inventory inventory @relation(fields: [transformation_workshop_fk, product_fk], references: [transformation_workshop_fk, product_fk], onDelete: Cascade)
 }
 
 enum CustomerType {

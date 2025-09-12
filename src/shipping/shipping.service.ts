@@ -10,7 +10,7 @@ export class ShippingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly meuEnvioShippingStrategy: MeuEnvioShippingStrategy,
-  ) {}
+  ) { }
 
   async calculate(dto: ShippingRequestDto) {
     const shipments: {
@@ -29,17 +29,27 @@ export class ShippingService {
       const product_tw =
         await this.prisma.transformation_workshop_product.findMany({
           where: { product_fk: product?.id },
+          include: { transformation_workshop: true },
         });
 
-      const quantity_tw = product_tw.map((p) => {
-        return {
-          quantity: p.quantity,
-          workshopId: p.transformation_workshop_fk,
-        };
-      });
+      const quantity_tw = await Promise.all(
+        product_tw.map(async (p) => {
+          const priceFrete = await this.meuEnvioShippingStrategy.calculatePrice(
+            dto.destinationZipCode,
+            p.transformation_workshop?.cep ?? ''
+          );
+          return {
+            quantity: p.quantity,
+            workshopId: p.transformation_workshop_fk,
+            price: priceFrete
+          };
+        })
+      );
+
+      const ordenadoPorPreco = [...quantity_tw].sort((a, b) => a.price - b.price)
       const ordemItens = this.algothmsMoneyShipping(
         orderItems.quantity,
-        quantity_tw,
+        ordenadoPorPreco,
       );
 
       const array = Object.entries(ordemItens).map(

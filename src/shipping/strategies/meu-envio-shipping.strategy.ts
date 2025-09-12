@@ -60,6 +60,42 @@ export class MeuEnvioShippingStrategy implements ShippingStrategy {
     };
   }
 
+  async calculatePrice(
+    fromCep: string,
+    toCep: string,
+    altura = 20,
+    largura = 20,
+    comprimento = 20,
+    peso = 1,
+  ) {
+    const payload = {
+      from: { postal_code: fromCep },
+      to: { postal_code: toCep },
+      package: {
+        height: altura,
+        width: largura,
+        length: comprimento,
+        weight: peso,
+      },
+      services: '1,2,3', // vazio para retornar todos os serviços disponíveis
+    };
+
+    const response = await axios.post<ShippingOption[]>(
+      `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
+      payload,
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.MELHOR_ENVIO_API_TOKEN}`,
+        },
+      },
+    );
+
+    const preco = parseFloat(
+      response?.data?.find((item) => item.price)?.price ?? '0',
+    );
+    return preco;
+  }
+
   parseShippingApiResponse(
     apiResponse: ShippingOption[],
   ): ShippingQuoteResponse {

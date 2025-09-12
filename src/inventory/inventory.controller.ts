@@ -23,6 +23,19 @@ export class InventoryController {
     return this.inventoryService.create(createInventoryDto);
   }
 
+  @Post('entry')
+  @ApiCreatedResponse({ type: InventoryResponse })
+  async add_entry(@Body() createInventoryDto: CreateInventoryDto) {
+    return this.inventoryService.add_entry(createInventoryDto);
+  }
+
+  @Post('exit')
+  @ApiCreatedResponse({ type: InventoryResponse })
+  async add_exit(@Body() createInventoryDto: CreateInventoryDto) {
+    return this.inventoryService.add_exit(createInventoryDto);
+  }
+
+
   @Get()
   @ApiOkResponse({ type: [InventoryResponse] })
   async findAll(@Query() query: QueryInventoryDto) {

@@ -5,9 +5,12 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { isEmpty } from 'class-validator';
 import { QueryInventoryDto } from '../dto/query-inventory.dto'
 
+
 @Injectable()
 export class InventoryService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+  ) { }
 
   async create(createInventoryDto: CreateInventoryDto) {
     try {
@@ -15,13 +18,84 @@ export class InventoryService {
         data: {
           product: { connect: { id: createInventoryDto.idProduct } },
           transformation_workshop: { connect: { id: createInventoryDto.idTransformationWorkshop } },
-          quantity: createInventoryDto.quantity,
+          quantity: 0,
         }
       });
+
+      if (createInventoryDto.quantity > 0) {
+        await this.add_entry(createInventoryDto);
+      }
+
       return createInventory;
 
     } catch (err) {
       console.log(err);
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async add_entry(createInventoryDto: CreateInventoryDto) {
+    try {
+      const createInventoryEntry = await this.prisma.inventory_entry.create({
+        data: {
+          inventory: {
+            connect: {
+              transformation_workshop_fk_product_fk: {
+                transformation_workshop_fk: createInventoryDto.idTransformationWorkshop,
+                product_fk: createInventoryDto.idProduct,
+              },
+            },
+          },
+          quantity: createInventoryDto.quantity,
+        },
+      });
+
+      const updateInventoryDto: UpdateInventoryDto = {
+        quantity: createInventoryDto.quantity,
+      };
+
+      await this.update(createInventoryDto.idTransformationWorkshop,
+        createInventoryDto.idProduct, updateInventoryDto
+      )
+
+      return createInventoryEntry;
+
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(err, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+  }
+
+  async add_exit(createInventoryDto: CreateInventoryDto) {
+    try {
+
+      const updateInventoryDto: UpdateInventoryDto = {
+        quantity: -createInventoryDto.quantity,
+      };
+
+       await this.update(createInventoryDto.idTransformationWorkshop,
+        createInventoryDto.idProduct, updateInventoryDto
+      )
+
+      const createInventoryExit = await this.prisma.inventory_exit.create({
+        data: {
+          inventory: {
+            connect: {
+              transformation_workshop_fk_product_fk: {
+                transformation_workshop_fk: createInventoryDto.idTransformationWorkshop,
+                product_fk: createInventoryDto.idProduct,
+              },
+            },
+          },
+          quantity: createInventoryDto.quantity,
+        },
+      });
+
+      return createInventoryExit;
+      
+    } catch (err) {
+       console.log(err);
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
   }
@@ -88,13 +162,9 @@ export class InventoryService {
 
       if (
         updateInventoryDto.quantity !== undefined &&
-        updateInventoryDto.quantity < inventory.quantity
+        (inventory.quantity + updateInventoryDto.quantity) < 0
       ) {
-        const difference = inventory.quantity - updateInventoryDto.quantity;
-
-        if (difference > inventory.quantity) {
-          throw new HttpException('Not enough inventory to reduce', HttpStatus.BAD_REQUEST);
-        }
+        throw new HttpException('Not enough inventory to reduce', HttpStatus.BAD_REQUEST);
       }
 
       const quantityToAdd = updateInventoryDto.quantity ?? 0;
@@ -116,7 +186,7 @@ export class InventoryService {
       return updatedInventory;
 
     } catch (err) {
-      throw new HttpException(err.message || err, HttpStatus.BAD_REQUEST);
+      throw new HttpException(err.message || 'Erro inesperado', HttpStatus.BAD_REQUEST);
     }
   }
 

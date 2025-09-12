@@ -159,8 +159,8 @@ model transformation_workshop_user {
 }
 
 model product {
-  id  Int    @id @default(autoincrement())
-  uid String @default(uuid())
+  id                              Int                               @id @default(autoincrement())
+  uid                             String                            @default(uuid())
   name                            String
   description                     String
   price                           Float?
@@ -299,9 +299,29 @@ model inventory {
   product_fk                 Int
   product                    product                 @relation(fields: [product_fk], references: [id])
   quantity                   Int
+  inventoryEntries           inventory_entry[]
+  inventoryExits             inventory_exit[]
 
   @@id([transformation_workshop_fk, product_fk])
   @@unique([transformation_workshop_fk, product_fk])
+}
+
+model inventory_entry {
+  id                         Int       @id @default(autoincrement())
+  transformation_workshop_fk Int
+  product_fk                 Int
+  quantity                   Int
+  created_at                 DateTime  @default(now()) @map("created_at")
+  inventory                  inventory @relation(fields: [transformation_workshop_fk, product_fk], references: [transformation_workshop_fk, product_fk], onDelete: Cascade)
+}
+
+model inventory_exit {
+  id                         Int       @id @default(autoincrement())
+  transformation_workshop_fk Int
+  product_fk                 Int
+  quantity                   Int
+  created_at                 DateTime  @default(now()) @map("created_at")
+  inventory                  inventory @relation(fields: [transformation_workshop_fk, product_fk], references: [transformation_workshop_fk, product_fk], onDelete: Cascade)
 }
 
 enum CustomerType {

@@ -8,7 +8,7 @@ export class TransformationWorkshopBffService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
-  ) {}
+  ) { }
 
   async transformationWorkshopUser(userId: number) {
     try {
@@ -158,14 +158,30 @@ export class TransformationWorkshopBffService {
   async getOrdersTransformationWorkshop(id: number) {
     try {
       const members = await this.prisma.transformation_workshop.findUnique({
-        where: {
-          id: id,
-        },
+        where: { id },
         select: {
-          order: true,
+          order: {
+            include: {
+              _count: { select: { order_items: true } },
+              order_items: true
+            }
+          },
         },
       });
-      return members;
+
+      // transforma cada order e adiciona o campo totalProducts
+      const ordersWithTotalProducts = members?.order.map(order => {
+        const totalProducts = order.order_items.reduce(
+          (acc, item) => acc + item.quantity,
+          0
+        );
+        return {
+          ...order,
+          totalProducts
+        };
+      });
+
+      return ordersWithTotalProducts;
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }

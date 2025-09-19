@@ -149,7 +149,9 @@ export class OrdersService {
       where: { id },
       include: {
         user: true,
-        workshop: true,
+        workshop: {
+          include: { state: true, city: true },
+        },
         order_delivery_address: {
           include: { state: true, city: true },
         },
@@ -236,6 +238,7 @@ export class OrdersService {
         data: {
           notes: updateOrderDto.observation,
           status: updateOrderDto.status,
+          payment_status: updateOrderDto.payment_status,
           updatedAt: new Date(),
         },
         include: {

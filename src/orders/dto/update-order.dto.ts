@@ -6,7 +6,7 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { OrderStatus } from '@prisma/client';
+import { OrderStatus, PaymentStatus } from '@prisma/client';
 
 export class UpdateOrderItemDto {
   @IsNumber()
@@ -28,6 +28,10 @@ export class UpdateOrderDto {
   @IsString()
   @IsOptional()
   status?: OrderStatus; // Se você tiver um enum de status no modelo
+
+  @IsString()
+  @IsOptional()
+  payment_status?: PaymentStatus; // Se você tiver um enum de status no modelo
 
   @IsArray()
   @ValidateNested({ each: true })

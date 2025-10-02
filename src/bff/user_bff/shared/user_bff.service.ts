@@ -55,6 +55,7 @@ export class UserBffService {
           email: true,
           name: true,
           username: true,
+          role: true
         },
       });
       return user;

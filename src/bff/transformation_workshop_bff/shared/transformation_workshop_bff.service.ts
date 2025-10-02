@@ -59,6 +59,7 @@ export class TransformationWorkshopBffService {
             state: true,
             city: true,
             order: {
+              take: 5,
               include: {
                 _count: {
                   select: {
@@ -68,6 +69,7 @@ export class TransformationWorkshopBffService {
               },
             },
             transformation_workshop_product: {
+              take: 5,
               select: {
                 id: true,
                 quantity: true,
@@ -79,6 +81,7 @@ export class TransformationWorkshopBffService {
               },
             },
             transformation_workshop_user: {
+              take: 5,
               select: {
                 users: true,
               },

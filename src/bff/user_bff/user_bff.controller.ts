@@ -1,12 +1,15 @@
-import { Body, Controller, Get, Post, Req } from '@nestjs/common';
-import { ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
+import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { UserBffService } from './shared/user_bff.service';
 import { CreateUserBffDto } from './dto/create-user.dto';
 import { AuthService } from 'src/auth/shared/auth.service';
 import { EmailService } from 'src/utils/middleware/email.middleware';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @ApiTags('User-Bff')
+@ApiBearerAuth('access-token')
+@UseGuards(JwtAuthGuard)
 @Controller('user-bff')
 export class AuxUserController {
   constructor(

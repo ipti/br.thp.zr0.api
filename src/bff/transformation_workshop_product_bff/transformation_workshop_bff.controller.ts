@@ -17,8 +17,8 @@ import { ProductTransformationWorkshopUpdateDto } from './dto/transformation_wor
 
 @ApiTags('Transformation-Workshop-Product-Bff')
 @Controller('transformation-workshop-product-bff')
-// @ApiBearerAuth('access-token')
-// @UseGuards(JwtAuthGuard)
+@ApiBearerAuth('access-token')
+@UseGuards(JwtAuthGuard)
 export class TransformationWorkshopProductBffController {
   constructor(
     private readonly transformationWorkshopProductBffService: TransformationWorkshopProductBffService,

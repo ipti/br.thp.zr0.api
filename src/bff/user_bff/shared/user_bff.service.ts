@@ -33,6 +33,7 @@ export class UserBffService {
   }
 
   async FindUserToken(userId: number) {
+    console.log(userId)
     try {
       const user = await this.prisma.users.findUnique({
         where: {

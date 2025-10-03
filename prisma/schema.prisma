@@ -324,6 +324,38 @@ model inventory_exit {
   inventory                  inventory @relation(fields: [transformation_workshop_fk, product_fk], references: [transformation_workshop_fk, product_fk], onDelete: Cascade)
 }
 
+model profile {
+  id          Int       @id @default(autoincrement())
+  role        Role      @unique
+  pages       page_permission[]
+  menu        menu_item[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+// Cada página com suas permissões CRUD
+model page_permission {
+  id        Int      @id @default(autoincrement())
+  profile   profile  @relation(fields: [profileId], references: [id])
+  profileId Int
+  page      String
+  create    Boolean  @default(false)
+  read      Boolean  @default(false)
+  update    Boolean  @default(false)
+  delete    Boolean  @default(false)
+}
+
+// Cada item de menu
+model menu_item {
+  id        Int      @id @default(autoincrement())
+  profile   profile  @relation(fields: [profileId], references: [id])
+  profileId Int
+  label     String
+  link      String
+  icon      String?  // você pode salvar o nome do ícone ou algo que represente
+  order     Int?     // opcional para ordenar os itens do menu
+}
+
 enum CustomerType {
   PF
   PJ

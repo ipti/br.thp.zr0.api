@@ -51,4 +51,17 @@ export class AuxUserController {
       req.user?.id ?? 1,
     );
   }
+
+  @Get('profile')
+  findUserTokenProfile(@Req() req: any) {
+    return this.userBffService.FindUserTokenProfile(
+      req.user?.id ?? 1,
+    );
+  }
+  @Get('address-custumer')
+  findUserTokenAddress(@Req() req: any) {
+    return this.userBffService.FindUserTokenAddress(
+      req.user?.id ?? 1,
+    );
+  }
 }

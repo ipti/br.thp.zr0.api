@@ -1,11 +1,6 @@
-/*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19-11.7.2-MariaDB, for Win64 (AMD64)
---
--- Host: localhost    Database: beneficiarios.tag.ong.br
--- ------------------------------------------------------
--- Server version	11.7.2-MariaDB-ubu2404
 
-DELETE FROM state
+
+DELETE FROM state;
 
 INSERT INTO state VALUES
 (11,'RO','Rondônia'),

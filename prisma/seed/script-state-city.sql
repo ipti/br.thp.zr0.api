@@ -30,7 +30,6 @@ CREATE TABLE `state` (
 -- Dumping data for table `state`
 --
 
-LOCK TABLES `state` WRITE;
 
 INSERT INTO `state` VALUES
 (11,'RO','Rondônia'),
@@ -61,7 +60,6 @@ INSERT INTO `state` VALUES
 (52,'GO','Goiás'),
 (53,'DF','Distrito Federal');
 
-UNLOCK TABLES;
 
 SET FOREIGN_KEY_CHECKS = 0;
 
@@ -88,7 +86,6 @@ CREATE TABLE `city` (
 -- Dumping data for table `city`
 --
 
-LOCK TABLES `city` WRITE;
 
 INSERT INTO `city` VALUES
 (1100015,11,'ALTA FLORESTA D OESTE','76954000','76954970',69,69),
@@ -5662,7 +5659,6 @@ INSERT INTO `city` VALUES
 (5222302,52,'VILA PROPICIO','76393000','76393980',62,62),
 (5300108,53,'BRASILIA','70002900','73403539',61,61);
 /*!40000 ALTER TABLE `city` ENABLE KEYS */;
-UNLOCK TABLES;
 
 --
 -- Table structure for table `state`

@@ -5,31 +5,7 @@
 -- ------------------------------------------------------
 -- Server version	11.7.2-MariaDB-ubu2404
 
---
--- Table structure for table `city`
---
-
-SET FOREIGN_KEY_CHECKS = 0;
-
-
-DROP TABLE IF EXISTS `state`;
-
-
-SET FOREIGN_KEY_CHECKS = 1;
-
-CREATE TABLE `state` (
-  `id` int(11) NOT NULL,
-  `acronym` varchar(2) NOT NULL,
-  `name` varchar(20) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `id` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
---
--- Dumping data for table `state`
---
-
+DELETE FROM state
 
 INSERT INTO `state` VALUES
 (11,'RO','Rondônia'),
@@ -61,31 +37,7 @@ INSERT INTO `state` VALUES
 (53,'DF','Distrito Federal');
 
 
-SET FOREIGN_KEY_CHECKS = 0;
-
-DROP TABLE IF EXISTS `city`;
-
-SET FOREIGN_KEY_CHECKS = 1;
-
-CREATE TABLE `city` (
-  `id` int(11) NOT NULL,
-  `state_fk` int(11) NOT NULL,
-  `name` varchar(50) NOT NULL,
-  `cep_initial` varchar(9) DEFAULT NULL,
-  `cep_final` varchar(9) DEFAULT NULL,
-  `ddd1` smallint(6) DEFAULT NULL,
-  `ddd2` smallint(6) DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `id` (`id`),
-  KEY `state_fk` (`state_fk`),
-  CONSTRAINT `city_ibfk_1` FOREIGN KEY (`state_fk`) REFERENCES `state` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-
---
--- Dumping data for table `city`
---
-
+DELETE FROM city;
 
 INSERT INTO `city` VALUES
 (1100015,11,'ALTA FLORESTA D OESTE','76954000','76954970',69,69),
@@ -5658,12 +5610,3 @@ INSERT INTO `city` VALUES
 (5222203,52,'VILA BOA','73825000','73825970',61,62),
 (5222302,52,'VILA PROPICIO','76393000','76393980',62,62),
 (5300108,53,'BRASILIA','70002900','73403539',61,61);
-/*!40000 ALTER TABLE `city` ENABLE KEYS */;
-
---
--- Table structure for table `state`
---
-
-
-
--- Dump completed on 2025-05-19 16:29:56

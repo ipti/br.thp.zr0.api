@@ -1,13 +1,8 @@
-/*M!999999\- enable the sandbox mode */ 
--- MariaDB dump 10.19-11.7.2-MariaDB, for Win64 (AMD64)
---
--- Host: localhost    Database: beneficiarios.tag.ong.br
--- ------------------------------------------------------
--- Server version	11.7.2-MariaDB-ubu2404
 
-DELETE FROM state
 
-INSERT INTO `state` VALUES
+DELETE FROM state;
+
+INSERT INTO state VALUES
 (11,'RO','Rondônia'),
 (12,'AC','Acre'),
 (13,'AM','Amazonas'),
@@ -39,7 +34,7 @@ INSERT INTO `state` VALUES
 
 DELETE FROM city;
 
-INSERT INTO `city` VALUES
+INSERT INTO city VALUES
 (1100015,11,'ALTA FLORESTA D OESTE','76954000','76954970',69,69),
 (1100023,11,'ARIQUEMES','76870001','76879400',69,69),
 (1100031,11,'CABIXI','76994000','76994970',69,69),

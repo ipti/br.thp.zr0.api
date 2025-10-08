@@ -5,7 +5,7 @@ import { join } from 'path';
 const prisma = new PrismaClient();
 
 async function main() {
-  const files = ['script-state-city.sql'];
+  const files = ['script-state-city.sql', 'script-profile.sql'];
 
   const statements: string[] = [];
 

@@ -38,7 +38,7 @@ export class UserBffService {
         where: {
           id: userId,
         },
-       
+
         select: {
           customer: {
             include: {
@@ -46,18 +46,93 @@ export class UserBffService {
                 include: {
                   city: true,
                   state: true,
-                }
-              }
-            }
+                },
+              },
+            },
           },
           password: false,
           id: true,
           email: true,
           name: true,
           username: true,
-          role: true
+          role: true,
         },
       });
+      return user;
+    } catch (err) {
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async FindUserTokenProfile(userId: number) {
+    try {
+      const user = await this.prisma.users.findUnique({
+        where: {
+          id: userId,
+        },
+
+        select: {
+          customer: {
+            include: {
+              billing_address: {
+                include: {
+                  city: true,
+                  state: true,
+                },
+              },
+            },
+          },
+          password: false,
+          id: true,
+          email: true,
+          name: true,
+          username: true,
+          role: true,
+        },
+      });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+      const profile = await this.prisma.profile.findUnique({
+        where: {
+          role: user?.role,
+        },
+        include: {
+          menu: true,
+          pages: true,
+        },
+      });
+      return profile;
+    } catch (err) {
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async FindUserTokenAddress(userId: number) {
+    try {
+      const user = await this.prisma.users.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          customer: {
+            select: {
+              address_customer: {
+                include: {
+                  city: true,
+                  state: true,
+                },
+              },
+            },
+          },
+        },
+      });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
       return user;
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);

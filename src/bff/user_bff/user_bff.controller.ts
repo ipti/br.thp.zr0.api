@@ -40,14 +40,28 @@ export class AuxUserController {
   @Get('transf-work')
   findOne(@Req() req: any) {
     return this.userBffService.FindUserTranformationWorkshop(
-      req.user?.sub ?? 1,
+      req.user?.id ?? 1,
     );
   }
 
   @Get('token')
   findToken(@Req() req: any) {
+    console.log(req.user)
     return this.userBffService.FindUserToken(
-      req.user?.sub ?? 1,
+      req.user?.id ?? 1,
+    );
+  }
+
+  @Get('profile')
+  findUserTokenProfile(@Req() req: any) {
+    return this.userBffService.FindUserTokenProfile(
+      req.user?.id ?? 1,
+    );
+  }
+  @Get('address-custumer')
+  findUserTokenAddress(@Req() req: any) {
+    return this.userBffService.FindUserTokenAddress(
+      req.user?.id ?? 1,
     );
   }
 }

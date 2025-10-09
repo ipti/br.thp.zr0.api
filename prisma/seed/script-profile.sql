@@ -32,15 +32,15 @@ INSERT INTO page_permission (profileId, page, `create`, `read`, `update`, `delet
 (2, 'product/update', 0, 0, 0, 0),
 (2, 'product/one', 0, 0, 0, 0),
 (2, 'transformation-workshop', 0, 1, 1, 0),
-(2, 'transformation-workshop/create', 0, 1, 1, 0),
+(2, 'transformation-workshop/create', 0, 0, 0, 0),
 (2, 'transformation-workshop/member', 1, 1, 1, 1),
 (2, 'transformation-workshop/orders', 1, 1, 1, 1),
 (2, 'transformation-workshop/one', 1, 1, 1, 1),
 (2, 'transformation-workshop/product', 1, 1, 1, 1),
 (2, 'transformation-workshop/update', 1, 1, 1, 1),
-(2, 'user', 0, 1, 0, 0),
-(2, 'user/create', 0, 1, 0, 0),
-(2, 'user/update', 0, 1, 0, 0);
+(2, 'user', 1, 1, 0, 0),
+(2, 'user/create', 1, 1, 0, 0),
+(2, 'user/update', 0, 0, 0, 0);
 
 
 -- SELLER
@@ -48,18 +48,18 @@ INSERT INTO page_permission (profileId, page, `create`, `read`, `update`, `delet
 (3, 'category', 0, 0, 0, 0),
 (3, 'category/create', 0, 0, 0, 0),
 (3, 'category/update', 0, 0, 0, 0),
-(3, 'home', 0, 0, 0, 0),
+(3, 'home', 0, 1, 0, 0),
 (3, 'product', 0, 1, 0, 0),
 (3, 'product/create', 0, 0, 0, 0),
 (3, 'product/update', 0, 0, 0, 0),
 (3, 'product/one', 0, 0, 0, 0),
-(3, 'transformation-workshop', 0, 1, 1, 0),
-(3, 'transformation-workshop/create', 0, 1, 1, 0),
+(3, 'transformation-workshop', 0, 1, 0, 0),
+(3, 'transformation-workshop/create', 0, 0, 0, 0),
 (3, 'transformation-workshop/member', 1, 1, 1, 1),
 (3, 'transformation-workshop/orders', 1, 1, 1, 1),
 (3, 'transformation-workshop/one', 1, 1, 1, 1),
-(3, 'transformation-workshop/product', 0, 1, 0, 0),
-(3, 'transformation-workshop/update', 0, 1, 0, 0),
+(3, 'transformation-workshop/product', 0, 1, 1, 0),
+(3, 'transformation-workshop/update', 0, 0, 0, 0),
 (3, 'user', 0, 0, 0, 0),
 (3, 'user/create', 0, 0, 0, 0),
 (3, 'user/update', 0, 0, 0, 0);

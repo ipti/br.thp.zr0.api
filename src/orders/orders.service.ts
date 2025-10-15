@@ -3,9 +3,10 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Prisma } from '@prisma/client';
+import { EmailService } from 'src/utils/middleware/email.middleware';
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService,private readonly emailService: EmailService,) { }
 
   async create(createOrderDto: CreateOrderDto) {
     const { userId, items, observation, address } = createOrderDto;
@@ -121,6 +122,16 @@ export class OrdersService {
 
         createdOrders.push(order);
       }
+
+      const user = await this.prisma.users.findUnique({where: {id: userId}})
+
+      
+      await this.emailService.sendEmail(
+        user?.email ?? '',
+        'Pedido realizado',
+        'sendOrder.hbs',
+        { name_client: user?.name, products: createdOrders.order_items.map(i => ({id: i.order_fk, name: i.quantity, quantity: i.quantity, price: i.total_price}))  },
+      );
 
       return {
         message: 'Pedidos criados com sucesso!',

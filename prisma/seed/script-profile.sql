@@ -97,5 +97,5 @@ INSERT INTO menu_item (profileId, label, link, icon, `order`) VALUES
 (3, 'Oficinas de Transformações', '/seller/transformation-workshop', 'pi pi-warehouse', 1),
 (3, 'Pedidos da OT', '/seller/transformation-workshop/orders', 'pi pi-receipt', 2),
 (3, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-th-large', 3),
-(3, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 4),
+(3, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 4);
 

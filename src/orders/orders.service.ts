@@ -136,18 +136,7 @@ export class OrdersService {
         }}})
 
         if(order){
-          console.log({ 
-                name_client: user?.name, 
-                id_order: order.uid, 
-                total_amount: order.total_amount, 
-                payment_method: order.payment_method, 
-                address: order.order_delivery_address?.address, 
-                number: order.order_delivery_address?.number, 
-                neighborhood: order.order_delivery_address?.neighborhood,
-                cep: order.order_delivery_address?.cep,
-                state: order.order_delivery_address?.state?.name,
-                city: order.order_delivery_address?.city?.name,
-                products: order.order_items.map(i => ({id: i.product.uid, name: i.product.name, quantity: i.quantity, price: i.total_price, imagem: i.product.product_image[0].img_url ?? ''}))  })
+          
           await this.emailService.sendEmail(
             user?.email ?? '',
             'Pedido realizado',

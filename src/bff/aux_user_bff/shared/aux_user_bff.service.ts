@@ -67,15 +67,15 @@ export class AuxUserBffService {
         throw new HttpException('Email not found', HttpStatus.NOT_FOUND);
       }
 
-      const token = await this.authService.generateToken(user);
+      const token = await this.authService.generateTokenPasswordRec(user);
 
-      const link = `${process.env.SITE}/auth/reset-passoword?token=${token.access_token}`;
+      const link = `${process.env.SITE}/auth/reset-password?token=${token.access_token}`;
 
       await this.emailService.sendEmail(
         user.email,
         'Resetar senha',
         'passwordRec.hbs',
-        { passwordResetLink: link },
+        { passwordResetLink: link, name: user.name },
       );
 
       return { message: 'Email enviado com sucesso' };

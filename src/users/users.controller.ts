@@ -44,7 +44,7 @@ export class UsersController {
       user.email,
       'Verificação de email',
       'verifyEmail.hbs',
-      { verificationLink: link },
+      { verificationLink: link, name: user.name },
     );
 
     return user;

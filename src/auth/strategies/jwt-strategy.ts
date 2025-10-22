@@ -21,6 +21,13 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
+  generatePasswordRecToken(payload: { sub: any; email: any }) {
+    return this.jwtService.sign(payload, {
+      secret: jwtConstants.secret,
+      expiresIn: '600s',
+    });
+  }
+
   async validate(payload: any) {
     return {
       id: payload.sub,

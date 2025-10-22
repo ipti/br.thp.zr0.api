@@ -50,4 +50,15 @@ export class AuthService {
       userRegistered,
     };
   }
+
+  async generateTokenPasswordRec(user: any) {
+    const payload = { email: user.email, sub: user.id };
+
+    const userRegistered = await this.usersService.findOneByEmail(user.email);
+
+    return {
+      access_token: this.jwtStrategy.generatePasswordRecToken(payload),
+      userRegistered,
+    };
+  }
 }

@@ -3,9 +3,10 @@ import { CreateOrderDto } from './dto/create-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Prisma } from '@prisma/client';
+import { EmailService } from 'src/utils/middleware/email.middleware';
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService,private readonly emailService: EmailService,) { }
 
   async create(createOrderDto: CreateOrderDto) {
     const { userId, items, observation, address } = createOrderDto;
@@ -121,6 +122,41 @@ export class OrdersService {
 
         createdOrders.push(order);
       }
+
+      const user = await this.prisma.users.findUnique({where: {id: userId}})
+
+      for(const ordersSend of createdOrders){
+        const order = await tx.order.findUnique({where: {id: ordersSend.id}, select: {total_amount: true, payment_method: true, uid: true, order_delivery_address: {
+          include: {
+            city: true,
+            state: true
+          }
+        }, order_items: {
+          include: {product: {include: {product_image: true}}}
+        }}})
+
+        if(order){
+          
+          await this.emailService.sendEmail(
+            user?.email ?? '',
+            'Pedido realizado',
+            'sendOrder.hbs',
+            { 
+              name_client: user?.name, 
+              id_order: order.uid, 
+              total_amount: order.total_amount, 
+              payment_method: order.payment_method, 
+              address: order.order_delivery_address?.address, 
+              number: order.order_delivery_address?.number, 
+              neighborhood: order.order_delivery_address?.neighborhood,
+              cep: order.order_delivery_address?.cep,
+              state: order.order_delivery_address?.state?.name,
+              city: order.order_delivery_address?.city?.name,
+              products: order.order_items.map(i => ({id: i.product.uid, name: i.product.name, quantity: i.quantity, price: i.total_price, imagem: i.product.product_image[0].img_url ?? ''}))  },
+          );
+        }
+      }
+     
 
       return {
         message: 'Pedidos criados com sucesso!',

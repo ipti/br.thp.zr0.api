@@ -23,6 +23,7 @@ import { ProductionModule } from './production/production.module';
 import { CartModule } from './cart/cart.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { AddressCustomerModule } from './address_customer/address_customer.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -46,7 +47,8 @@ import { AddressCustomerModule } from './address_customer/address_customer.modul
     ProductionModule,
     CartModule,
     InventoryModule,
-    AddressCustomerModule
+    AddressCustomerModule,
+    PaymentModule
   ],
   controllers: [AppController],
   providers: [AppService],

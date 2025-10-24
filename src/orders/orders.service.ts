@@ -6,7 +6,7 @@ import { Prisma } from '@prisma/client';
 import { EmailService } from 'src/utils/middleware/email.middleware';
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService,private readonly emailService: EmailService,) { }
+  constructor(private readonly prisma: PrismaService, private readonly emailService: EmailService,) { }
 
   async create(createOrderDto: CreateOrderDto) {
     const { userId, items, observation, address } = createOrderDto;
@@ -36,8 +36,8 @@ export class OrdersService {
       ]),
     );
 
-    return this.prisma.$transaction(async (tx) => {
-      const createdOrders: any = [];
+    const createdOrdersData = await this.prisma.$transaction(async (tx) => {
+      const createdOrders: any[] = [];
 
       for (const workshopId of workshops) {
         const itemsForWorkshop = items
@@ -54,7 +54,6 @@ export class OrdersService {
             const unitPrice = product.price ?? 0;
             const totalPrice = unitPrice * item.quantity;
 
-            // Validação de estoque
             const wpKey = `${workshopId}-${product.id}`;
             const twProduct = workshopProductMap.get(wpKey);
 
@@ -74,12 +73,8 @@ export class OrdersService {
             };
           });
 
-        const total = itemsForWorkshop.reduce(
-          (acc, i) => acc + i.total_price,
-          0,
-        );
+        const total = itemsForWorkshop.reduce((acc, i) => acc + i.total_price, 0);
 
-        // Criar pedido
         const order = await tx.order.create({
           data: {
             user: { connect: { id: userId } },
@@ -92,7 +87,6 @@ export class OrdersService {
           include: { order_items: true },
         });
 
-        // Criar endereço (se houver)
         if (address) {
           await tx.order_delivery_address.create({
             data: {
@@ -108,7 +102,6 @@ export class OrdersService {
           });
         }
 
-        // Atualizar estoque dos produtos
         for (const item of itemsForWorkshop) {
           const wpKey = `${workshopId}-${item.product.connect.id}`;
           const twProduct = workshopProductMap.get(wpKey);
@@ -123,46 +116,62 @@ export class OrdersService {
         createdOrders.push(order);
       }
 
-      const user = await this.prisma.users.findUnique({where: {id: userId}})
-
-      for(const ordersSend of createdOrders){
-        const order = await tx.order.findUnique({where: {id: ordersSend.id}, select: {total_amount: true, payment_method: true, uid: true, order_delivery_address: {
-          include: {
-            city: true,
-            state: true
-          }
-        }, order_items: {
-          include: {product: {include: {product_image: true}}}
-        }}})
-
-        if(order){
-          
-          await this.emailService.sendEmail(
-            user?.email ?? '',
-            'Pedido realizado',
-            'sendOrder.hbs',
-            { 
-              name_client: user?.name, 
-              id_order: order.uid, 
-              total_amount: order.total_amount, 
-              payment_method: order.payment_method, 
-              address: order.order_delivery_address?.address, 
-              number: order.order_delivery_address?.number, 
-              neighborhood: order.order_delivery_address?.neighborhood,
-              cep: order.order_delivery_address?.cep,
-              state: order.order_delivery_address?.state?.name,
-              city: order.order_delivery_address?.city?.name,
-              products: order.order_items.map(i => ({id: i.product.uid, name: i.product.name, quantity: i.quantity, price: i.total_price, imagem: i.product.product_image[0].img_url ?? ''}))  },
-          );
-        }
-      }
-     
-
-      return {
-        message: 'Pedidos criados com sucesso!',
-        orders: createdOrders.map((o) => ({ id: o.id, uid: o.uid })),
-      };
+      return createdOrders;
     });
+
+    // após o commit da transação
+    const user = await this.prisma.users.findUnique({ where: { id: userId } });
+
+    // enviar emails fora da transação
+    for (const order of createdOrdersData) {
+      const fullOrder = await this.prisma.order.findUnique({
+        where: { id: order.id },
+        select: {
+          total_amount: true,
+          payment_method: true,
+          uid: true,
+          order_delivery_address: {
+            include: { city: true, state: true },
+          },
+          order_items: {
+            include: { product: { include: { product_image: true } } },
+          },
+        },
+      });
+
+      if (fullOrder) {
+        await this.emailService.sendEmail(
+          user?.email ?? '',
+          'Pedido realizado',
+          'sendOrder.hbs',
+          {
+            name_client: user?.name,
+            id_order: fullOrder.uid,
+            total_amount: fullOrder.total_amount,
+            payment_method: fullOrder.payment_method,
+            address: fullOrder.order_delivery_address?.address,
+            number: fullOrder.order_delivery_address?.number,
+            neighborhood: fullOrder.order_delivery_address?.neighborhood,
+            cep: fullOrder.order_delivery_address?.cep,
+            state: fullOrder.order_delivery_address?.state?.name,
+            city: fullOrder.order_delivery_address?.city?.name,
+            products: fullOrder.order_items.map((i) => ({
+              id: i.product.uid,
+              name: i.product.name,
+              quantity: i.quantity,
+              price: i.total_price,
+              imagem: i.product.product_image[0]?.img_url ?? '',
+            })),
+          },
+        );
+      }
+    }
+
+    return {
+      message: 'Pedidos criados com sucesso!',
+      orders: createdOrdersData.map((o) => ({ id: o.id, uid: o.uid })),
+    };
+
   }
 
   async findAll() {

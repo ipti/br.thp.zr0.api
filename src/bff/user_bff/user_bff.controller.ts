@@ -46,7 +46,6 @@ export class AuxUserController {
 
   @Get('token')
   findToken(@Req() req: any) {
-    console.log(req.user)
     return this.userBffService.FindUserToken(
       req.user?.id ?? 1,
     );
@@ -61,6 +60,12 @@ export class AuxUserController {
   @Get('address-custumer')
   findUserTokenAddress(@Req() req: any) {
     return this.userBffService.FindUserTokenAddress(
+      req.user?.id ?? 1,
+    );
+  }
+  @Get('order')
+  findUserTokenOrder(@Req() req: any) {
+    return this.userBffService.FindUserTokenOrders(
       req.user?.id ?? 1,
     );
   }

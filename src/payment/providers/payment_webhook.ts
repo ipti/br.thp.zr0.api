@@ -12,18 +12,21 @@ import { Request, Response } from 'express';
 import { ApiTags } from '@nestjs/swagger';
 import Stripe from 'stripe';
 import { RawBodyInterceptor } from '../../utils/rawBodyInterceptor';
+import { PaymentService } from '../payment.service';
 
 @ApiTags('StripeWebhook')
 @Controller()
 @UseInterceptors(RawBodyInterceptor)
 export class StripeWebhookController {
   private stripe: Stripe;
+  
 
-//   constructor(private readonly stripeProvider: StripeProvider) {
-//     this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-//       apiVersion: '2025-02-24.acacia',
-//     });
-//   }
+constructor(private readonly payment: PaymentService) {
+    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+      apiVersion: '2025-09-30.clover',
+    });
+  }
+
 
   @Post('stripe/webhook')
   async handleWebhook(
@@ -33,7 +36,7 @@ export class StripeWebhookController {
   ) {
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET ?? '';
 
-    const rawBody = req.rawBody ?? '';
+    const rawBody = req.body;
 
     let event: Stripe.Event;
 
@@ -44,11 +47,12 @@ export class StripeWebhookController {
         endpointSecret,
       );
     } catch (err) {
+      console.log(err.message)
       res.status(400).send(`Webhook Error: ${err.message}`);
       return;
     }
-
-    // await this.stripeProvider.handleWebhook(event);
+    console.log(event)
+    await this.payment.handleWebhook(event);
     res.status(200).send('Webhook received');
   }
 }

@@ -6,7 +6,7 @@ export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
   @Post('create-intent')
-  async createPaymentIntent(@Body() createPaymentDto: { amount: number; currency: string }) {
-    return this.paymentService.createPaymentIntent(createPaymentDto.amount, createPaymentDto.currency);
+  async createPaymentIntent(@Body() createPaymentDto: { amount: number; currency: string, idOrder: number }) {
+    return this.paymentService.createPaymentIntent(createPaymentDto.amount, createPaymentDto.currency, createPaymentDto.idOrder);
   }
 }

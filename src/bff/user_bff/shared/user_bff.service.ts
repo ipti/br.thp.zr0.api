@@ -139,6 +139,40 @@ export class UserBffService {
     }
   }
 
+  async FindUserTokenOrders(userId: number) {
+    try {
+      const user = await this.prisma.users.findUnique({
+        where: {
+          id: userId,
+        },
+        select: {
+          order: {
+            select: {
+              id: true, 
+              uid: true,
+              createdAt: true,
+              payment_status: true,
+              status: true,
+              _count: {
+                select: {
+                  order_items: true
+                }
+              }
+            }
+          }
+        },
+      });
+
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+
+      return user;
+    } catch (err) {
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+    }
+  }
+
   async create(createUserDto: CreateUserBffDto) {
     const userRegistered = await this.prisma.users.findMany({
       where: { email: createUserDto.email },

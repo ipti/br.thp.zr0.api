@@ -5,6 +5,8 @@ import { AppService } from './app.service';
 import * as session from 'express-session';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { PrismaService } from './prisma/prisma.service';
+import * as bodyParser from 'body-parser';
+
 
 import 'dotenv/config'; // ou:
 import * as dotenv from 'dotenv';
@@ -32,11 +34,16 @@ async function bootstrap() {
 
   app.use(
     session({
-      secret: 'my-secret',
+      secret: process.env.SECRET,
       resave: false,
       saveUninitialized: false,
     }),
   );
+
+  app.use('/stripe/webhook', bodyParser.raw({ type: 'application/json' }));
+
+  // ✅ Use o JSON parser normalmente nas demais rotas
+  app.use(bodyParser.json());
 
   const options = new DocumentBuilder()
     .setTitle('Tecnologia Zr0')

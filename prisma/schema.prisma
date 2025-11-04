@@ -196,6 +196,7 @@ model order {
   user        users                    @relation(fields: [user_fk], references: [id])
   workshop_fk Int?
   workshop    transformation_workshop? @relation(fields: [workshop_fk], references: [id])
+  payment_intent_id String? @unique
 
   status       OrderStatus @default(PENDING)
   total_amount Float       @default(0)

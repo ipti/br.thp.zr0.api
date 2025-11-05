@@ -4,9 +4,10 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { Prisma } from '@prisma/client';
 import { EmailService } from 'src/utils/middleware/email.middleware';
+import { PaymentService } from 'src/payment/payment.service';
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService, private readonly emailService: EmailService,) { }
+  constructor(private readonly prisma: PrismaService, private readonly emailService: EmailService, private readonly paymentService: PaymentService) { }
 
   async create(createOrderDto: CreateOrderDto) {
     const { userId, items, observation, address } = createOrderDto;
@@ -122,6 +123,7 @@ export class OrdersService {
     // após o commit da transação
     const user = await this.prisma.users.findUnique({ where: { id: userId } });
 
+
     // enviar emails fora da transação
     for (const order of createdOrdersData) {
       const fullOrder = await this.prisma.order.findUnique({
@@ -134,13 +136,14 @@ export class OrdersService {
             include: { city: true, state: true },
           },
           order_items: {
-            include: { product: { include: { product_image: true } } },
+            include: { product: { include: { product_image: true } }, },
           },
         },
       });
-
+      
       if (fullOrder) {
-        await this.emailService.sendEmail(
+      await this.paymentService.createPaymentIntent(Math.round(fullOrder?.total_amount * 100), 'BRL', order.id)
+      await this.emailService.sendEmail(
           user?.email ?? '',
           'Pedido realizado',
           'sendOrder.hbs',

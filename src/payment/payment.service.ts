@@ -2,10 +2,11 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { StripeService } from '../stripe/stripe.service';
 import { PrismaService } from '../prisma/prisma.service';
 import Stripe from 'stripe';
+import { EmailService } from '../utils/middleware/email.middleware';
 
 @Injectable()
 export class PaymentService {
-  constructor(private readonly stripeService: StripeService, private readonly prisma: PrismaService,) { }
+  constructor(private readonly stripeService: StripeService, private readonly prisma: PrismaService, private readonly emailService: EmailService,) { }
 
   async createPaymentIntent(amount: number, currency: string, idOrder: number) {
     const stripe = this.stripeService.getStripeClient();
@@ -13,23 +14,26 @@ export class PaymentService {
       amount,
       currency,
       payment_method_types: ['card'],
-    }, { idempotencyKey: idOrder.toString() } );
+    },
+      //  { idempotencyKey: idOrder.toString() } 
+    );
 
     const order = await this.prisma.order.findUnique({
       where: {
         id: idOrder
-      }
+      },
+
     })
 
     if (order) {
-      await this.prisma.order.update({ where: { id: idOrder }, data: {payment_intent_id: payment?.id} })
+      await this.prisma.order.update({ where: { id: idOrder }, data: { payment_intent_id: payment?.id } })
     }
 
     return payment
   }
 
   async handleWebhook(event) {
-    try{
+    try {
       switch (event.type) {
         case 'payment_intent.succeeded':
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
@@ -52,20 +56,94 @@ export class PaymentService {
 
   }
 
-  async updateOrderStatus(idPaymentIntent: string, status: string){
-    try {
-      const order = await this.prisma.order.findUnique({where: {payment_intent_id: idPaymentIntent}})
+  async updateOrderStatus(idPaymentIntent: string, status: string) {
 
-      if(!order) {
+    try {
+      const order = await this.prisma.order.findUnique({
+        where: { payment_intent_id: idPaymentIntent }, include: {
+          order_delivery_address: { include: { city: true, state: true } },
+          order_items: {
+            include: {
+              product: {
+                include: {
+                  product_image: true
+                }
+              }
+            }
+          },
+          user: {
+            select: {
+              email: true,
+              name: true
+            }
+          }
+        }
+      })
+
+      if (!order) {
         throw new HttpException('Pedido não encontrado', HttpStatus.NOT_FOUND);
-      }else { 
-        await this.prisma.order.update({where: {id: order.id}, data: {payment_status: status === 'PAID' ? 'PAID' : status === 'FAILED' ? 'FAILED' : order.payment_status, status: status === 'PAID' ? 'CONFIRMED' : order.status}})
+      } else {
+
+        await this.prisma.order.update({ where: { id: order.id }, data: { payment_status: status === 'PAID' ? 'PAID' : status === 'FAILED' ? 'FAILED' : order.payment_status, status: status === 'PAID' ? 'CONFIRMED' : order.status } })
+        await this.emailService.sendEmail(
+          order.user?.email ?? '',
+          'Pagamento realizado',
+          'paymentConfirmed.hbs',
+          {
+            name_client: order.user?.name,
+            id_order: order.uid,
+            total_amount: order.total_amount,
+            payment_method: order.payment_method,
+            address: order.order_delivery_address?.address,
+            number: order.order_delivery_address?.number,
+            neighborhood: order.order_delivery_address?.neighborhood,
+            cep: order.order_delivery_address?.cep,
+            state: order.order_delivery_address?.state?.name,
+            city: order.order_delivery_address?.city?.name,
+            products: order.order_items.map((i) => ({
+              id: i.product.uid,
+              name: i.product.name,
+              quantity: i.quantity,
+              price: i.total_price,
+              imagem: i.product.product_image[0]?.img_url ?? '',
+            })),
+          },
+        );
       }
 
-      return {message: 'Pagamento realizado'}
+      console.log('email enviado')
+
+      return { message: 'Pagamento realizado' }
     } catch (err) {
       return new HttpException(err, HttpStatus.BAD_REQUEST);
       // throw 
+    }
+  }
+
+
+  async getPaymentIntent(idOrder: number){
+    try {
+
+    const order = await this.prisma.order.findUnique({where: {id: idOrder}})
+
+    if(!order){
+        throw new HttpException('Pedido não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    if(order?.payment_intent_id){
+      const stripe = this.stripeService.getStripeClient();
+        
+      const paymentIntent = await stripe.paymentIntents.retrieve(
+        order.payment_intent_id
+      );
+      return paymentIntent
+    } else {
+      return await this.createPaymentIntent(order?.total_amount ?? 0, 'BRL', order?.id)
+    }
+   
+    } catch (error) {
+      console.log(error)
+      return new HttpException(error, HttpStatus.BAD_REQUEST);
     }
   }
 }

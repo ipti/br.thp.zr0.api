@@ -147,6 +147,7 @@ export class UserBffService {
         },
         select: {
           order: {
+            orderBy: {id: 'desc'},
             select: {
               id: true, 
               uid: true,

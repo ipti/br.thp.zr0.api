@@ -74,28 +74,28 @@ INSERT INTO page_permission (profileId, page, `create`, `read`, `update`, `delet
 -- =======================
 -- ADMIN
 INSERT INTO menu_item (profileId, label, link, icon, `order`) VALUES
-(1, 'Oficinas de Transformações', '/seller/transformation-workshop', 'pi pi-warehouse', 1),
+(1, 'Oficinas de Transformações', '/seller/transformation-workshop', 'pi pi-home', 1),
 (1, 'Pedidos da OT', '/seller/transformation-workshop/orders', 'pi pi-receipt', 2),
-(1, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-th-large', 3),
+(1, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-shopping-bag', 3),
 (1, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 4),
-(1, 'Categorias', '/seller/category', 'pi pi-sitemap', 5),
-(1, 'Produtos', '/seller/product', 'pi pi-th-large', 6),
+(1, 'Categorias', '/seller/category', 'pi pi-tag', 5),
+(1, 'Produtos', '/seller/product', 'pi pi-server', 6),
 (1, 'Usuários', '/seller/user', 'pi pi-users', 7);
 
 
 -- SELLER_MANAGER
 INSERT INTO menu_item (profileId, label, link, icon, `order`) VALUES
-(2, 'Oficinas de Transformações', '/seller/transformation-workshop', 'pi pi-warehouse', 1),
+(2, 'Oficinas de Transformações', '/seller/transformation-workshop', 'pi pi-home', 1),
 (2, 'Pedidos da OT', '/seller/transformation-workshop/orders', 'pi pi-receipt', 2),
-(2, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-th-large', 3),
+(2, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-shopping-bag', 3),
 (2, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 4),
 (2, 'Usuários', '/seller/user', 'pi pi-users', 5);
 
 
 -- SELLER
 INSERT INTO menu_item (profileId, label, link, icon, `order`) VALUES
-(3, 'Oficinas de Transformações', '/seller/transformation-workshop', 'pi pi-warehouse', 1),
+(3, 'Oficinas de Transformações', '/seller/transformation-workshop', 'pi pi-home', 1),
 (3, 'Pedidos da OT', '/seller/transformation-workshop/orders', 'pi pi-receipt', 2),
-(3, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-th-large', 3),
+(3, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-shopping-bag', 3),
 (3, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 4);
 

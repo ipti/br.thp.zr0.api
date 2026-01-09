@@ -154,6 +154,17 @@ export class UserBffService {
               createdAt: true,
               payment_status: true,
               status: true,
+              order_items: {
+                select: {
+                  product: {
+                    select: {
+                      id: true,
+                      name: true,
+                      product_image: true
+                  },
+                },
+              },
+            },
               _count: {
                 select: {
                   order_items: true

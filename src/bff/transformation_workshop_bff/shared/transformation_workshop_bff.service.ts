@@ -164,6 +164,7 @@ export class TransformationWorkshopBffService {
         where: { id },
         select: {
           order: {
+            orderBy: { createdAt: 'desc' },
             include: {
               _count: { select: { order_items: true } },
               order_items: true

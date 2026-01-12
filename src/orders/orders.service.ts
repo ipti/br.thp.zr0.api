@@ -37,6 +37,16 @@ export class OrdersService {
       ]),
     );
 
+    const workshopUsersManagers = await this.prisma.transformation_workshop_user.findMany({
+      where: {
+        transformation_workshop_fk: { in: workshops },
+        users: { role: {in: ['SELLER', 'SELLER_MANAGER']},}
+      },
+      select: {
+        users: { select: { email: true }
+      }
+    }});
+
     const createdOrdersData = await this.prisma.$transaction(async (tx) => {
       const createdOrders: any[] = [];
 
@@ -143,6 +153,7 @@ export class OrdersService {
       
       if (fullOrder) {
       await this.paymentService.createPaymentIntent(Math.round(fullOrder?.total_amount * 100), 'BRL', order.id)
+
       await this.emailService.sendEmail(
           user?.email ?? '',
           'Pedido realizado',
@@ -167,8 +178,37 @@ export class OrdersService {
             })),
           },
         );
+
+        console.log('workshopUsersManagers', workshopUsersManagers);
+
+        for (const manager of workshopUsersManagers) {
+           await this.emailService.sendEmail(
+          manager?.users.email ?? '',
+          'Pedido realizado',
+          'sendOrderManager.hbs',
+          {
+            name_client: user?.name,
+            id_order: fullOrder.uid,
+            total_amount: fullOrder.total_amount,
+            payment_method: fullOrder.payment_method,
+            address: fullOrder.order_delivery_address?.address,
+            number: fullOrder.order_delivery_address?.number,
+            neighborhood: fullOrder.order_delivery_address?.neighborhood,
+            cep: fullOrder.order_delivery_address?.cep,
+            state: fullOrder.order_delivery_address?.state?.name,
+            city: fullOrder.order_delivery_address?.city?.name,
+            products: fullOrder.order_items.map((i) => ({
+              id: i.product.uid,
+              name: i.product.name,
+              quantity: i.quantity,
+              price: i.total_price,
+              imagem: i.product.product_image[0]?.img_url ?? '',
+            })),
+          },
+        );
       }
     }
+  }
 
     return {
       message: 'Pedidos criados com sucesso!',
@@ -224,6 +264,17 @@ export class OrdersService {
       // Verifica se o pedido existe
       const existingOrder = await this.prisma.order.findUnique({
         where: { id },
+        include: {
+          user: true,
+          order_delivery_address: {
+            include: { state: true, city: true },
+          },
+          order_items: {
+            include: {
+              product: { include: { product_image: true } },
+            },
+          },
+        },
       });
 
       if (!existingOrder) {
@@ -293,6 +344,33 @@ export class OrdersService {
           order_items: true,
         },
       });
+
+      if(updateOrderDto.status === 'SHIPPED'){
+        await this.emailService.sendEmail(
+          existingOrder.user?.email ?? '',
+          'Pedido enviado',
+          'shippingOrder.hbs',
+          {
+            name_client: existingOrder.user?.name,
+            id_order: existingOrder.uid,
+            total_amount: existingOrder.total_amount,
+            payment_method: existingOrder.payment_method,
+            address: existingOrder.order_delivery_address?.address,
+            number: existingOrder.order_delivery_address?.number,
+            neighborhood: existingOrder.order_delivery_address?.neighborhood,
+            cep: existingOrder.order_delivery_address?.cep,
+            state: existingOrder.order_delivery_address?.state?.name,
+            city: existingOrder.order_delivery_address?.city?.name,
+            products: existingOrder.order_items.map((i) => ({
+              id: i.product.uid,
+              name: i.product.name,
+              quantity: i.quantity,
+              price: i.total_price,
+              imagem: i.product.product_image[0]?.img_url ?? '',
+            })),
+          },
+        );
+      }
 
       return updatedOrder;
     } catch (err) {

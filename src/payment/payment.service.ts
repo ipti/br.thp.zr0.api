@@ -84,8 +84,19 @@ export class PaymentService {
         throw new HttpException('Pedido não encontrado', HttpStatus.NOT_FOUND);
       } else {
 
+         const workshopUsersManagers = await this.prisma.transformation_workshop_user.findMany({
+          where: {
+            transformation_workshop_fk: order.workshop_fk ?? 1,
+            users: { role: {in: ['SELLER', 'SELLER_MANAGER']},}
+          },
+          select: {
+            users: { select: { email: true }
+          }
+        }});
+
         await this.prisma.order.update({ where: { id: order.id }, data: { payment_status: status === 'PAID' ? 'PAID' : status === 'FAILED' ? 'FAILED' : order.payment_status, status: status === 'PAID' ? 'CONFIRMED' : order.status } })
-        await this.emailService.sendEmail(
+        if (status === 'PAID'){
+           await this.emailService.sendEmail(
           order.user?.email ?? '',
           'Pagamento realizado',
           'paymentConfirmed.hbs',
@@ -109,6 +120,33 @@ export class PaymentService {
             })),
           },
         );
+          for (const manager of workshopUsersManagers) {
+             await this.emailService.sendEmail(
+          manager.users?.email ?? '',
+          'Pagamento realizado',
+          'paymentConfirmedManager.hbs',
+          {
+            name_client: order.user?.name,
+            id_order: order.uid,
+            total_amount: order.total_amount,
+            payment_method: order.payment_method,
+            address: order.order_delivery_address?.address,
+            number: order.order_delivery_address?.number,
+            neighborhood: order.order_delivery_address?.neighborhood,
+            cep: order.order_delivery_address?.cep,
+            state: order.order_delivery_address?.state?.name,
+            city: order.order_delivery_address?.city?.name,
+            products: order.order_items.map((i) => ({
+              id: i.product.uid,
+              name: i.product.name,
+              quantity: i.quantity,
+              price: i.total_price,
+              imagem: i.product.product_image[0]?.img_url ?? '',
+            })),
+          },
+        );
+        }}
+       
       }
 
       console.log('email enviado')

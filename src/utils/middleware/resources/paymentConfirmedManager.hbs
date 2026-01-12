@@ -2,7 +2,7 @@
   <head>
     <meta charset='UTF-8' />
     <meta name='viewport' content='width=device-width, initial-scale=1.0' />
-    <title>Pedido Confirmado! Obrigado pela sua compra, {{name_client}} - Zr0</title>
+    <title>Pagamento Confirmado! Obrigado pela sua compra, {{name_client}} - Zr0</title>
      <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
@@ -85,13 +85,13 @@
           style="max-width: 64px; display: inline-block;"
         />
       </div>
-      <h2>Confirmação de Pedido</h2>
+      <h2>{{name_client}}, efetuou o pagamento!</h2>
        <p>
-        Caro {{name_client}}, obrigado pelo seu pedido! Realize o pagamento para finalizar a compra.
-        Esperamos que você aproveite suas compras no Zr0.
+        O pagamento foi confirmado e prepare a compra para envio.
       </p>
          <div class="summary">
         <h3>Resumo do pedido</h3>
+
         <div class="row">
           <strong>Número do pedido: </strong>
           <span>&nbsp; {{id_order}}</span>
@@ -102,10 +102,10 @@
           <span>&nbsp; R$ {{total_amount}}</span>
         </div>
 
-        {{!-- <div class="row">
+        <div class="row">
           <strong>Forma de pagamento: </strong>
           <span>&nbsp; {{payment_method}}</span>
-        </div> --}}
+        </div>
 
         <div style="margin-top:16px;">
           <strong>Endereço de entrega:</strong><br />

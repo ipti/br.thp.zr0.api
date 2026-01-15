@@ -376,6 +376,7 @@ enum OrderStatus {
   SHIPPED
   COMPLETED
   CANCELLED
+  SOLITED_CANCELLATION
 }
 
 enum PaymentStatus {

@@ -38,12 +38,12 @@ export class PaymentService {
         case 'payment_intent.succeeded':
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
           console.log('✅ PaymentIntent succeeded:', paymentIntent.id);
-          this.updateOrderStatus(paymentIntent.id, 'PAID')
+          this.updateOrderStatus(paymentIntent.id, 'PAID');
           break;
 
         case 'payment_intent.payment_failed':
           const failedIntent = event.data.object as Stripe.PaymentIntent;
-          this.updateOrderStatus(failedIntent.id, 'FAILED')
+          this.updateOrderStatus(failedIntent.id, 'FAILED');
           console.warn('❌ Payment failed:', failedIntent.id);
           break;
 

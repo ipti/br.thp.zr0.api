@@ -6,6 +6,7 @@ import { CreateUserBffDto } from './dto/create-user.dto';
 import { AuthService } from 'src/auth/shared/auth.service';
 import { EmailService } from 'src/utils/middleware/email.middleware';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CreateUserCustomerBffDto } from './dto/create-user-custumer.dto';
 
 @ApiTags('User-Bff')
 @ApiBearerAuth('access-token')
@@ -36,6 +37,25 @@ export class AuxUserController {
 
     return user;
   }
+
+  @Post('created-user-with-custumer')
+  @ApiCreatedResponse({})
+  async createUserCustumer(@Body() userCreate: CreateUserCustomerBffDto) {
+    const user = await this.userBffService.createUserCustumer(userCreate);
+
+    const token = await this.authService.generateToken(user);
+
+    const link = `${process.env.SITE}/auth/verify-email?token=${token.access_token}`;
+
+    await this.emailService.sendEmail(
+      user.email,
+      'Verificação de email',
+      'verifyEmail.hbs',
+      { verificationLink: link, name: user.active },
+    );
+
+    return user;
+  } 
 
   @Get('transf-work')
   findOne(@Req() req: any) {

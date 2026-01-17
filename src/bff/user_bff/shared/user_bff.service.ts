@@ -3,6 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/shared/users.service';
 import { CreateUserBffDto } from '../dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
+import { CreateUserCustomerBffDto } from '../dto/create-user-custumer.dto';
 
 @Injectable()
 export class UserBffService {
@@ -212,6 +213,49 @@ export class UserBffService {
             transformation_workshop: { connect: { id: createUserDto.ot_fk } },
           },
         });
+
+        return createdUser;
+      });
+      return transaction;
+    } catch (err) {
+      console.log(err);
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+   async createUserCustumer(createUserDto: CreateUserCustomerBffDto) {
+    const userRegistered = await this.prisma.users.findMany({
+      where: { email: createUserDto.email },
+    });
+
+    if (userRegistered.length > 0) {
+      throw new HttpException('Email already exists', HttpStatus.BAD_REQUEST);
+    }
+    const hashedPassword = await this.hashPassword(createUserDto.password);
+
+    try {
+      const transaction = await this.prisma.$transaction(async (tx) => {
+        const createdUser = await tx.users.create({
+          data: {
+            email: createUserDto.email,
+            name: createUserDto.name,
+            password: hashedPassword,
+            role: createUserDto.role,
+          },
+        });
+
+        await tx.customer.create({
+          data: {
+            cnpj: createUserDto.cnpj,
+            cpf: createUserDto.cpf,
+            birthday: new Date(createUserDto.birthday),
+            phone: createUserDto.phone,
+            corporate_name: createUserDto.corporate_name,
+            trade_name: createUserDto.trade_name, 
+            user: { connect: { id: createdUser.id } },
+          },
+        });
+          
 
         return createdUser;
       });

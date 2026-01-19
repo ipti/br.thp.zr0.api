@@ -3,7 +3,7 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/shared/users.service';
 import { CreateUserBffDto } from '../dto/create-user.dto';
 import * as bcrypt from 'bcrypt';
-import { CreateUserCustomerBffDto } from '../dto/create-user-custumer.dto';
+import { CreateUserCustomerBffDto } from '../dto/create-user-customer.dto';
 
 @Injectable()
 export class UserBffService {
@@ -223,7 +223,7 @@ export class UserBffService {
     }
   }
 
-   async createUserCustumer(createUserDto: CreateUserCustomerBffDto) {
+   async createUserCustomer(createUserDto: CreateUserCustomerBffDto) {
     const userRegistered = await this.prisma.users.findMany({
       where: { email: createUserDto.email },
     });
@@ -248,7 +248,7 @@ export class UserBffService {
           data: {
             cnpj: createUserDto.cnpj,
             cpf: createUserDto.cpf,
-            birthday: new Date(createUserDto.birthday),
+            birthday: createUserDto.birthday ? new Date(createUserDto.birthday) : null,
             phone: createUserDto.phone,
             corporate_name: createUserDto.corporate_name,
             trade_name: createUserDto.trade_name, 

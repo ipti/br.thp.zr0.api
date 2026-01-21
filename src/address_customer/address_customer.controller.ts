@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  Put,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
@@ -18,6 +19,7 @@ import { CreateAddressCustomerDto } from './dto/create-address_customer.dto';
 import { UpdateAddressCustomerDto } from './dto/update-address_customer.dto';
 import { QueryAddressCustomerDto } from './dto/query-address_customer.dto';
 import { AddressCustomerResponse } from './doc/address-customer.response';
+import { UpdateDefaultAddressCustomerDto } from './dto/update-default-address_customer.dto';
 
 @Controller('address-customer')
 export class AddressCustomerController {
@@ -45,7 +47,7 @@ export class AddressCustomerController {
     return this.AddressCustomerService.findOne(+id);
   }
 
-  @Patch(':id')
+  @Patch('update/:id')
   @ApiOkResponse({ type: [AddressCustomerResponse] })
   @ApiBearerAuth('access-token')
   update(
@@ -55,9 +57,18 @@ export class AddressCustomerController {
     return this.AddressCustomerService.update(+id, UpdateAddressCustomerDto);
   }
 
-  @Delete(':id')
+  @Patch('default')
+  @ApiOkResponse({ type: [AddressCustomerResponse] })
   @ApiBearerAuth('access-token')
-  remove(@Param('id') id: string) {
-    return this.AddressCustomerService.remove(+id);
+  updateIsDefault(
+    @Body() UpdateAddressCustomerDto: UpdateDefaultAddressCustomerDto,
+  ) {
+    return this.AddressCustomerService.updateDefault(UpdateAddressCustomerDto);
+  }
+
+  @Delete(':id/:customerId')
+  @ApiBearerAuth('access-token')
+  remove(@Param('id') id: string, @Param('customerId') customerId: string) {
+    return this.AddressCustomerService.remove(+id, +customerId);
   }
 }

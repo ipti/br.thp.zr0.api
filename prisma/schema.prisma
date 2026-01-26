@@ -70,6 +70,7 @@ model address_customer {
   number       String
   complement   String?   @db.VarChar(100)
   neighborhood String?   @db.VarChar(100)
+  is_default   Boolean   @default(true)
   state        state?    @relation(fields: [state_fk], references: [id])
   state_fk     Int?
   city         city?     @relation(fields: [city_fk], references: [id])

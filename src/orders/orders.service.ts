@@ -374,9 +374,9 @@ export class OrdersService {
 
       return updatedOrder;
     } catch (err) {
-      console.error(err);
+      console.log(err);
       throw new HttpException(
-        'Erro ao atualizar pedido',
+        err,
         HttpStatus.BAD_REQUEST,
       );
     }

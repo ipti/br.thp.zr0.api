@@ -1,0 +1,133 @@
+<html lang='pt-BR'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta name='viewport' content='width=device-width, initial-scale=1.0' />
+    <title>Pedido Confirmado! Obrigado pela sua compra, {{name_client}} - Zr0</title>
+     <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
+          Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue',
+          sans-serif;
+        color: #333;
+        margin: 0;
+        padding: 0;
+        background: #fff;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+      .logo {
+        text-align: left;
+        font-size: 28px;
+        font-weight: bold;
+      }
+      h2 {
+        text-align: center;
+        margin-top: 32px;
+        margin-bottom: 24px;
+      }
+      .summary {
+        border-top: 1px solid #ddd;
+        margin-top: 16px;
+        padding-top: 16px;
+      }
+      .summary h3 {
+        text-align: center;
+        margin-bottom: 12px;
+      }
+      .row {
+        display: flex;
+        justify-content: space-between;
+        margin: 6px 0;
+      }
+      .product {
+        display: flex;
+        align-items: center;
+        margin: 12px 0;
+      }
+      .product img {
+        width: 100px;
+        height: 100px;
+        object-fit: cover;
+        margin-right: 12px;
+        border-radius: 6px;
+      }
+      .product-info {
+        flex: 1;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between 
+      }
+      .footer {
+        border-top: 1px solid #ddd;
+        margin-top: 24px;
+        padding-top: 12px;
+        margin-bottom: 32px;
+        font-size: 12px;
+        color: #999999;
+      }
+    </style>
+  </head>
+  <body
+     style='display:flex; flex-direction:column; padding: 20px; font-family: Arial, sans-serif; margin: 40px auto; max-width: 600px; background-color: #fff; padding: 20px; border-radius: 8px; box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);'
+  >
+    <div class='container' style='margin-top: 20px;'>
+      <div >
+        <img
+          src="https://zrodrive.blob.core.windows.net/logo/ZR0_logotipo.png"
+          alt="Logo Zr0"
+          style="max-width: 64px; display: inline-block;"
+        />
+      </div>
+       <p>
+        Caro {{name_client}}, seu reembolso foi solicitado!
+        Os reembolsos levam de cinco a dez dias para serem realizados.
+      </p>
+         <div class="summary">
+        <h3>Resumo do pedido cancelado</h3>
+
+        <div class="row">
+          <strong>Número do pedido: </strong>
+          <span>&nbsp; {{id_order}}</span>
+        </div>
+
+        <div class="row">
+          <strong>Valor total: </strong>
+          <span>&nbsp; R$ {{total_amount}}</span>
+        </div>
+
+        {{!-- Loop de produtos --}}
+        {{#each products}}
+        <div class="product">
+          <img src="{{this.imagem}}" alt="{{this.nome}}" />
+          <div class="product-info">
+            <div>
+            <strong>{{this.name}}</strong><br />
+            Código: {{this.id}}<br />
+            Quantidade: {{this.quantity}}<br />
+            </div>
+            <strong>R$ {{this.price}}</strong>
+          </div>
+        </div>
+        {{/each}}
+
+      </div>
+        <div class="footer">
+        Esse e-mail e quaisquer arquivos transmitidos com ele são confidenciais e destinados exclusivamente para uso pelo indivíduo ou pela entidade a quem estão endereçados. Se você recebeu este e-mail por engano, notifique o administrador do sistema.
+      </div>
+     <div >
+        <img
+          src="https://zrodrive.blob.core.windows.net/logo/ZR0_logotipo.png"
+          alt="Logo Zr0"
+          style="max-width: 64px; display: inline-block;"
+        />
+      </div>
+    </div>
+  </body>
+</html>

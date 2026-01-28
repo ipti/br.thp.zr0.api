@@ -38,6 +38,30 @@ export class PaymentService {
       where: {
         id: idOrder
       },
+      select: {
+        user: {
+          select: {email: true, name: true}
+        },
+        payment_intent_id: true,
+        uid: true,
+        total_amount: true,
+        payment_method: true,
+        order_delivery_address: {
+          include: {
+            city: true,
+            state: true
+          }
+        },
+        order_items: {
+          include: {
+            product: {
+              include: {
+                product_image: true
+              }
+            }
+          }
+        }
+      }
     })
 
     if (!order?.payment_intent_id) {
@@ -54,6 +78,23 @@ export class PaymentService {
       await this.prisma.order.update({ where: { id: idOrder }, data: { status: 'CANCELLED', payment_status: 'REFUNDED'}, })
     }
 
+    await this.emailService.sendEmail(
+          order.user?.email ?? '',
+          'Reembolsar pedido',
+          'refundOrder.hbs',
+          {
+            name_client: order.user?.name,
+            id_order: order.uid,
+            total_amount: order.total_amount,
+            products: order.order_items.map((i) => ({
+              id: i.product.uid,
+              name: i.product.name,
+              quantity: i.quantity,
+              price: i.total_price,
+              imagem: i.product?.product_image[0]?.img_url ?? '',
+            })),
+          },
+        );
     return payment
   }
 

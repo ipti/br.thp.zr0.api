@@ -12,8 +12,13 @@ export class OrdersBffService {
   async ordersFromWorkshopTransformation(twId: number) {
     try {
       const tw = this.prisma.order.findMany({
+        orderBy: {
+          createdAt: 'desc'
+        },
         where: {
-          workshop_fk: twId,
+          order_services: {
+            every: {transformation_workshop_fk: twId}
+          },
         },
       })
 
@@ -22,6 +27,38 @@ export class OrdersBffService {
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
+  }
+
+    async ordersFromWorkshopTransformationFindOne(id: number, twId: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        user: true,
+        order_services: {
+          where: { transformation_workshop_fk: twId },
+          include: {
+            order_item: {
+              include: {
+                product: true,
+                variant: true,
+              },
+            },
+            transformation_workshop: {
+              include: { state: true, city: true },
+            },
+          }
+        },
+        order_delivery_address: {
+          include: { state: true, city: true },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new HttpException('Pedido não encontrado', HttpStatus.NOT_FOUND);
+    }
+
+    return order;
   }
 
 

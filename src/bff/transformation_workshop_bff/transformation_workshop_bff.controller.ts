@@ -62,9 +62,15 @@ export class TransformationWorkshopBffController {
   @ApiCreatedResponse()
   @ApiBearerAuth('access-token')
   @UseGuards(JwtAuthGuard)
-  async transformationWorkshopOrder(@Query('id') id: number) {
+  async transformationWorkshopOrder(
+    @Query('id') id: number,
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 10,
+  ) {
     return this.transformationWorkshopBffService.getOrdersTransformationWorkshop(
       id,
+      page,
+      limit,
     );
   }
 

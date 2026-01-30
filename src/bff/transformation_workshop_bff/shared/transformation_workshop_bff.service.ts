@@ -58,12 +58,12 @@ export class TransformationWorkshopBffService {
           include: {
             state: true,
             city: true,
-            order: {
+            order_service: {
               take: 5,
               include: {
                 _count: {
                   select: {
-                    order_items: true,
+                    order_item: true,
                   },
                 },
               },
@@ -158,34 +158,60 @@ export class TransformationWorkshopBffService {
     }
   }
 
-  async getOrdersTransformationWorkshop(id: number) {
+  async getOrdersTransformationWorkshop(
+    id: number,
+    page: number = 1,
+    limit: number = 10,
+  ) {
     try {
-      const members = await this.prisma.transformation_workshop.findUnique({
-        where: { id },
-        select: {
-          order: {
-            orderBy: { createdAt: 'desc' },
-            include: {
-              _count: { select: { order_items: true } },
-              order_items: true
-            }
+      const skip = (page - 1) * limit;
+
+      const [orders, total] = await Promise.all([
+        this.prisma.transformation_workshop.findUnique({
+          where: { id },
+          select: {
+            order_service: {
+              skip,
+              take: limit,
+              orderBy: { createdAt: 'desc' },
+              include: {
+                _count: { select: { order_item: true } },
+                order_item: true,
+                order: {
+                  select: {
+                    payment_status: true,
+                  },
+                },
+              },
+            },
           },
-        },
-      });
+        }),
+        this.prisma.order_service.count({
+          where: { transformation_workshop_fk: id },
+        }),
+      ]);
 
       // transforma cada order e adiciona o campo totalProducts
-      const ordersWithTotalProducts = members?.order.map(order => {
-        const totalProducts = order.order_items.reduce(
+      const ordersWithTotalProducts = orders?.order_service.map((order) => {
+        const totalProducts = order.order_item.reduce(
           (acc, item) => acc + item.quantity,
-          0
+          0,
         );
         return {
           ...order,
-          totalProducts
+          totalProducts,
         };
       });
 
-      return ordersWithTotalProducts;
+      return {
+        data: ordersWithTotalProducts,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }

@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -15,5 +15,14 @@ export class OrdersBffController {
   @UseGuards(JwtAuthGuard)
   async ordersFromWorkshopTransformation(@Param('idTw') idTw: string) {
     return this.ordersBffService.ordersFromWorkshopTransformation(+idTw);
+  }
+
+
+  @Get('transformation-workshop-one')
+  @ApiCreatedResponse()
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  async ordersFromWorkshopTransformationFindOne(@Query('idOrder') idOrder: string, @Query('idTw') idTw: string) {
+    return this.ordersBffService.ordersFromWorkshopTransformationFindOne(+idOrder,+idTw);
   }
 }

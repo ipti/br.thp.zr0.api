@@ -10,7 +10,7 @@ export class UserBffService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
-  ) {}
+  ) { }
 
   async FindUserTranformationWorkshop(userId: number) {
     try {
@@ -148,27 +148,31 @@ export class UserBffService {
         },
         select: {
           order: {
-            orderBy: {id: 'desc'},
+            orderBy: { id: 'desc' },
             select: {
-              id: true, 
+              id: true,
               uid: true,
               createdAt: true,
               payment_status: true,
-              status: true,
-              order_items: {
-                select: {
-                  product: {
-                    select: {
-                      id: true,
-                      name: true,
-                      product_image: true
+              order_services: {
+                include: {
+                  order_item: {
+                    include: {
+                      product: {
+                        select: {
+                          id: true,
+                          name: true,
+                          product_image: true
+                        },
+                      },
+                    },
                   },
-                },
+                }
               },
-            },
+
               _count: {
                 select: {
-                  order_items: true
+                  order_services: true
                 }
               }
             }
@@ -223,7 +227,7 @@ export class UserBffService {
     }
   }
 
-   async createUserCustomer(createUserDto: CreateUserCustomerBffDto) {
+  async createUserCustomer(createUserDto: CreateUserCustomerBffDto) {
     const userRegistered = await this.prisma.users.findMany({
       where: { email: createUserDto.email },
     });
@@ -251,11 +255,11 @@ export class UserBffService {
             birthday: createUserDto.birthday ? new Date(createUserDto.birthday) : null,
             phone: createUserDto.phone,
             corporate_name: createUserDto.corporate_name,
-            trade_name: createUserDto.trade_name, 
+            trade_name: createUserDto.trade_name,
             user: { connect: { id: createdUser.id } },
           },
         });
-          
+
 
         return createdUser;
       });

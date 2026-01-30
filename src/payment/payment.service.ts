@@ -38,25 +38,25 @@ export class PaymentService {
       where: {
         id: idOrder
       },
-      select: {
+      include: {
         user: {
           select: {email: true, name: true}
         },
-        payment_intent_id: true,
-        uid: true,
-        total_amount: true,
-        payment_method: true,
         order_delivery_address: {
           include: {
             city: true,
             state: true
           }
         },
-        order_items: {
+        order_services: {
           include: {
-            product: {
+            order_item: {
               include: {
-                product_image: true
+                product: {
+                  include: {
+                    product_image: true
+                  }
+                }
               }
             }
           }
@@ -75,8 +75,18 @@ export class PaymentService {
     });
 
     if (order) {
-      await this.prisma.order.update({ where: { id: idOrder }, data: { status: 'CANCELLED', payment_status: 'REFUNDED'}, })
+      await this.prisma.order.update({ where: { id: idOrder }, data: { payment_status: 'REFUNDED'}, })
     }
+
+    const products = order.order_services.flatMap((service) =>
+      service.order_item.map((i) => ({
+        id: i.product.uid,
+        name: i.product.name,
+        quantity: i.quantity,
+        price: i.total_price,
+        imagem: i.product?.product_image[0]?.img_url ?? '',
+      }))
+    );
 
     await this.emailService.sendEmail(
           order.user?.email ?? '',
@@ -86,13 +96,7 @@ export class PaymentService {
             name_client: order.user?.name,
             id_order: order.uid,
             total_amount: order.total_amount,
-            products: order.order_items.map((i) => ({
-              id: i.product.uid,
-              name: i.product.name,
-              quantity: i.quantity,
-              price: i.total_price,
-              imagem: i.product?.product_image[0]?.img_url ?? '',
-            })),
+            products,
           },
         );
     return payment
@@ -126,23 +130,31 @@ export class PaymentService {
 
     try {
       const order = await this.prisma.order.findUnique({
-        where: { payment_intent_id: idPaymentIntent }, include: {
-          order_delivery_address: { include: { city: true, state: true } },
-          order_items: {
-            include: {
-              product: {
-                include: {
-                  product_image: true
-                }
-              }
-            }
-          },
+        where: { payment_intent_id: idPaymentIntent }, 
+        include: {
           user: {
             select: {
               email: true,
               name: true
             }
-          }
+          },
+          order_delivery_address: { 
+            include: { city: true, state: true } 
+          },
+          order_services: {
+            include: {
+              transformation_workshop: true,
+              order_item: {
+                include: {
+                  product: {
+                    include: {
+                      product_image: true
+                    }
+                  }
+                }
+              }
+            }
+          },
         }
       })
 
@@ -150,9 +162,11 @@ export class PaymentService {
         throw new HttpException('Pedido não encontrado', HttpStatus.NOT_FOUND);
       } else {
 
+        const workshopIds = order.order_services.map(os => os.transformation_workshop_fk).filter(Boolean) as number[];
+
         const workshopUsersManagers = await this.prisma.transformation_workshop_user.findMany({
           where: {
-            transformation_workshop_fk: order.workshop_fk ?? 1,
+            transformation_workshop_fk: { in: workshopIds },
             users: { role: { in: ['SELLER', 'SELLER_MANAGER'] }, }
           },
           select: {
@@ -162,7 +176,33 @@ export class PaymentService {
           }
         });
 
-        await this.prisma.order.update({ where: { id: order.id }, data: { payment_status: status === 'PAID' ? 'PAID' : status === 'FAILED' ? 'FAILED' : order.payment_status, status: status === 'PAID' ? 'CONFIRMED' : order.status } })
+        await this.prisma.order.update({ 
+          where: { id: order.id }, 
+          data: { 
+            payment_status: status === 'PAID' ? 'PAID' : status === 'FAILED' ? 'FAILED' : order.payment_status,
+          } 
+        });
+
+        // Atualizar status dos order_services se o pagamento foi confirmado
+        if (status === 'PAID') {
+          for (const orderService of order.order_services) {
+            await this.prisma.order_service.update({
+              where: { id: orderService.id },
+              data: { status: 'CONFIRMED' }
+            });
+          }
+        }
+
+        const products = order.order_services.flatMap((service) =>
+          service.order_item.map((i) => ({
+            id: i.product.uid,
+            name: i.product.name,
+            quantity: i.quantity,
+            price: i.total_price,
+            imagem: i.product.product_image[0]?.img_url ?? '',
+          }))
+        );
+
         if (status === 'PAID') {
           await this.emailService.sendEmail(
             order.user?.email ?? '',
@@ -179,13 +219,7 @@ export class PaymentService {
               cep: order.order_delivery_address?.cep,
               state: order.order_delivery_address?.state?.name,
               city: order.order_delivery_address?.city?.name,
-              products: order.order_items.map((i) => ({
-                id: i.product.uid,
-                name: i.product.name,
-                quantity: i.quantity,
-                price: i.total_price,
-                imagem: i.product.product_image[0]?.img_url ?? '',
-              })),
+              products,
             },
           );
           for (const manager of workshopUsersManagers) {
@@ -204,13 +238,7 @@ export class PaymentService {
                 cep: order.order_delivery_address?.cep,
                 state: order.order_delivery_address?.state?.name,
                 city: order.order_delivery_address?.city?.name,
-                products: order.order_items.map((i) => ({
-                  id: i.product.uid,
-                  name: i.product.name,
-                  quantity: i.quantity,
-                  price: i.total_price,
-                  imagem: i.product.product_image[0]?.img_url ?? '',
-                })),
+                products,
               },
             );
           }

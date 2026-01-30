@@ -97,8 +97,8 @@ model transformation_workshop {
   city                            city?                             @relation(fields: [city_fk], references: [id])
   city_fk                         Int?
   production                      production[]
-  order                           order[]
   inventory                       inventory[]
+  order_service                   order_service[]
 }
 
 model transformation_workshop_product {
@@ -191,25 +191,34 @@ model product_image {
 }
 
 model order {
-  id          Int                      @id @default(autoincrement())
-  uid         String                   @unique @default(cuid())
-  user_fk     Int
-  user        users                    @relation(fields: [user_fk], references: [id])
-  workshop_fk Int?
-  workshop    transformation_workshop? @relation(fields: [workshop_fk], references: [id])
-  payment_intent_id String? @unique
-
-  status       OrderStatus @default(PENDING)
-  total_amount Float       @default(0)
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-
-  order_items    order_item[]
-  payment_status PaymentStatus  @default(PENDING)
-  payment_method PaymentMethod?
-
+  id                     Int                     @id @default(autoincrement())
+  uid                    String                  @unique
+  user_fk                Int
+  user                   users                   @relation(fields: [user_fk], references: [id])
+  total_amount           Float                   @default(0)
   notes                  String?                 @db.VarChar(500)
+  payment_status         PaymentStatus           @default(PENDING)
+  payment_method         PaymentMethod?
+  payment_intent_id      String?                 @unique
   order_delivery_address order_delivery_address?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  order_services         order_service[]
+}
+
+model order_service {
+  id                         Int                      @id @default(autoincrement())
+  uid                        String                   @unique
+  transformation_workshop_fk Int?
+  transformation_workshop    transformation_workshop? @relation(fields: [transformation_workshop_fk], references: [id])
+  status                     OrderStatus              @default(PENDING)
+  total_amount               Float                    @default(0)
+  createdAt                  DateTime                 @default(now())
+  updatedAt                  DateTime                 @updatedAt
+
+  order_item order_item[]
+  order      order?       @relation(fields: [order_fk], references: [id])
+  order_fk   Int?
 }
 
 model order_delivery_address {
@@ -225,15 +234,12 @@ model order_delivery_address {
   state_fk     Int?
   city         city?   @relation(fields: [city_fk], references: [id])
   city_fk      Int?
-
-  order    order @relation(fields: [order_fk], references: [id])
-  order_fk Int   @unique
+  order        order   @relation(fields: [order_fk], references: [id])
+  order_fk     Int     @unique
 }
 
 model order_item {
-  id       Int   @id @default(autoincrement())
-  order_fk Int
-  order    order @relation(fields: [order_fk], references: [id])
+  id Int @id @default(autoincrement())
 
   product_fk Int
   product    product @relation(fields: [product_fk], references: [id])
@@ -247,8 +253,10 @@ model order_item {
 
   delivery_estimate Json?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  order_service    order_service? @relation(fields: [order_service_fk], references: [id])
+  order_service_fk Int?
 }
 
 model production {
@@ -327,35 +335,35 @@ model inventory_exit {
 }
 
 model profile {
-  id          Int       @id @default(autoincrement())
-  role        Role      @unique
-  pages       page_permission[]
-  menu        menu_item[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id        Int               @id @default(autoincrement())
+  role      Role              @unique
+  pages     page_permission[]
+  menu      menu_item[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 }
 
 // Cada página com suas permissões CRUD
 model page_permission {
-  id        Int      @id @default(autoincrement())
-  profile   profile  @relation(fields: [profileId], references: [id])
+  id        Int     @id @default(autoincrement())
+  profile   profile @relation(fields: [profileId], references: [id])
   profileId Int
   page      String
-  create    Boolean  @default(false)
-  read      Boolean  @default(false)
-  update    Boolean  @default(false)
-  delete    Boolean  @default(false)
+  create    Boolean @default(false)
+  read      Boolean @default(false)
+  update    Boolean @default(false)
+  delete    Boolean @default(false)
 }
 
 // Cada item de menu
 model menu_item {
-  id        Int      @id @default(autoincrement())
-  profile   profile  @relation(fields: [profileId], references: [id])
+  id        Int     @id @default(autoincrement())
+  profile   profile @relation(fields: [profileId], references: [id])
   profileId Int
   label     String
   link      String
-  icon      String?  // você pode salvar o nome do ícone ou algo que represente
-  order     Int?     // opcional para ordenar os itens do menu
+  icon      String? // você pode salvar o nome do ícone ou algo que represente
+  order     Int? // opcional para ordenar os itens do menu
 }
 
 enum CustomerType {

@@ -11,7 +11,7 @@ export class CheckoutService {
   constructor(
     private readonly shippingService: ShippingService,
     private readonly prisma: PrismaService,
-  ) {}
+  ) { }
 
   async processCheckout(dto: CreateOrderDto): Promise<CheckoutResult> {
     const productIds = dto.orderItems.map((i) => i.productId);
@@ -40,28 +40,44 @@ export class CheckoutService {
         quantity: item.quantity,
         unit_price: unitPrice,
         total_price: totalPrice,
+        status: 'PENDING',
         product: {
           connect: { id: product.id },
         },
+        transformation_workshop: dto.workshopId
+          ? { connect: { id: dto.workshopId } }
+          : undefined,
       };
     });
+
+    const date = new Date(Date.now());
+    const currentYear = date.getFullYear();
+    const startOfYear = new Date(currentYear, 0, 1);
+    const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
+
+    const order_list = await this.prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: startOfYear,
+          lte: endOfYear,
+        },
+      },
+    });
+
+    const uid = date.getFullYear().toString() + String(date.getMonth() + 1).padStart(2, '0') + String(order_list.length + 1).padStart(4, '0');
 
     // Criação do pedido
     const order = await this.prisma.order.create({
       data: {
         user: { connect: { id: dto.customerId } },
-        workshop: dto.workshopId
-          ? { connect: { id: dto.workshopId } }
-          : undefined,
         total_amount: total,
-        status: 'PENDING',
         payment_method: dto.paymentMethod,
         payment_status: 'PENDING',
-        order_items: {
-          create: orderItemsData,
-        },
+        uid: uid
       },
     });
+
+
     return {
       orderId: order.id,
       total,

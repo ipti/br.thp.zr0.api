@@ -1,11 +1,19 @@
 import { PrismaClient } from '@prisma/client';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-
+import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
+
+
+async function hashPassword(password: string): Promise<string> {
+  const saltRounds = 10;
+  return bcrypt.hash(password, saltRounds);
+}
 
 async function main() {
   const files = ['script-state-city.sql', 'script-profile.sql'];
+
+
 
   const statements: string[] = [];
 
@@ -30,8 +38,28 @@ async function main() {
     }
   }
 
+  const userAdmin = await prisma.users.findUnique({
+    where: { email: 'admin@admin.com' }
+  })
+
+  if (!userAdmin) {
+
+    const hashedPassword = await hashPassword(process.env.PASSWORD_ADMIN ?? '12345678');
+    await prisma.users.create({
+      data: {
+        email: 'admin@admin.com',
+        name: 'Admin',
+        role: 'ADMIN',
+        password: hashedPassword,
+        verify_email: true
+      }
+    })
+  }
+
   console.log('Seed SQL executado com sucesso!');
 }
+
+
 
 main()
   .catch((e) => {
@@ -41,3 +69,4 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+

@@ -52,6 +52,34 @@ export class OrdersService {
     const createdOrdersData = await this.prisma.$transaction(async (tx) => {
       const createdOrders: any[] = [];
 
+      const date = new Date(Date.now());
+      const currentYear = date.getFullYear();
+      const startOfYear = new Date(currentYear, 0, 1);
+      const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
+
+      const order_list = await tx.order.findMany({
+        where: {
+          createdAt: {
+            gte: startOfYear,
+            lte: endOfYear,
+          },
+        },
+      });
+
+      const uid = date.getFullYear().toString() + String(date.getMonth() + 1).padStart(2, '0') + String(order_list.length + 1).padStart(4, '0');
+
+      // Criar pedido principal uma única vez
+      const order = await tx.order.create({
+        data: {
+          user: { connect: { id: userId } },
+          uid: uid,
+          total_amount: 0, // será atualizado depois
+          notes: observation,
+        },
+      });
+
+      let totalOrderAmount = 0;
+
       for (const workshopId of workshops) {
         const itemsForWorkshop = items
           .filter((i) => i.workshopId === workshopId)
@@ -86,34 +114,31 @@ export class OrdersService {
             };
           });
 
-        const total = itemsForWorkshop.reduce((acc, i) => acc + i.total_price, 0);
+        const workshopTotal = itemsForWorkshop.reduce((acc, i) => acc + i.total_price + i.delivery_estimate.cost, 0);
+        totalOrderAmount += workshopTotal;
 
-        const order = await tx.order.create({
-          data: {
-            user: { connect: { id: userId } },
-            total_amount: total,
-            status: 'PENDING',
-            notes: observation,
-            workshop: { connect: { id: workshopId } },
-            order_items: { create: itemsForWorkshop },
+   const order_service_list = await tx.order_service.findMany({
+        where: {
+          createdAt: {
+            gte: startOfYear,
+            lte: endOfYear,
           },
-          include: { order_items: true },
-        });
+        },
+      });
 
-        if (address) {
-          await tx.order_delivery_address.create({
-            data: {
-              cep: address.cep,
-              address: address.address,
-              number: address.number,
-              complement: address.complement,
-              neighborhood: address.neighborhood,
-              state: { connect: { id: address.stateId } },
-              city: { connect: { id: address.cityId } },
-              order: { connect: { id: order.id } },
-            },
-          });
-        }
+      const uid_service = date.getFullYear().toString() + String(date.getMonth() + 1).padStart(2, '0') + String(order_service_list.length + 1).padStart(4, '0');
+
+        
+        const orderService = await tx.order_service.create({
+          data: {
+            uid: uid_service,
+            transformation_workshop: { connect: { id: workshopId } },
+            total_amount: workshopTotal,
+            order: { connect: { id: order.id } },
+            order_item: { create: itemsForWorkshop },
+          },
+          include: { order_item: true },
+        });
 
         for (const item of itemsForWorkshop) {
           const wpKey = `${workshopId}-${item.product.connect.id}`;
@@ -125,40 +150,80 @@ export class OrdersService {
             });
           }
         }
-
-        createdOrders.push(order);
       }
 
+      // Criar o endereço de entrega apenas uma vez (fora do loop de workshops)
+      if (address) {
+        await tx.order_delivery_address.create({
+          data: {
+            cep: address.cep,
+            address: address.address,
+            number: address.number,
+            complement: address.complement,
+            neighborhood: address.neighborhood,
+            state: { connect: { id: address.stateId } },
+            city: { connect: { id: address.cityId } },
+            order: { connect: { id: order.id } },
+          },
+        });
+      }
+
+      // Atualizar o total do pedido
+      await tx.order.update({
+        where: { id: order.id },
+        data: { total_amount: totalOrderAmount },
+      });
+
+      createdOrders.push(order);
       return createdOrders;
     });
 
     // após o commit da transação
     const user = await this.prisma.users.findUnique({ where: { id: userId } });
 
-
     // enviar emails fora da transação
     for (const order of createdOrdersData) {
       const fullOrder = await this.prisma.order.findUnique({
         where: { id: order.id },
-        select: {
-          total_amount: true,
-          payment_method: true,
-          uid: true,
+        include: {
           order_delivery_address: {
             include: { city: true, state: true },
           },
-          order_items: {
-            include: { product: { include: { product_image: true }, }, },
+          order_services: {
+            include: {
+              order_item: {
+                include: { product: { include: { product_image: true } } },
+              },
+            },
           },
-
         },
       });
 
       if (fullOrder) {
-        await this.paymentService.createPaymentIntent(Math.round((fullOrder?.total_amount + fullOrder.order_items.reduce(
-          (acc: number, item: any) => acc + item.delivery_estimate.cost,
+        const totalShippingCost = fullOrder.order_services.reduce(
+          (acc: number, service: any) => acc + service.order_item.reduce(
+            (itemAcc: number, item: any) => itemAcc + (item.delivery_estimate?.cost ?? 0),
+            0
+          ),
           0
-        )) * 100), 'BRL', order.id)
+        );
+
+        await this.paymentService.createPaymentIntent(
+          Math.round((fullOrder.total_amount + totalShippingCost) * 100),
+          'BRL',
+          order.id
+        );
+
+        // Preparar produtos para email
+        const products = fullOrder.order_services.flatMap((service: any) =>
+          service.order_item.map((i: any) => ({
+            id: i.product.uid,
+            name: i.product.name,
+            quantity: i.quantity,
+            price: i.total_price,
+            imagem: i.product.product_image[0]?.img_url ?? '',
+          }))
+        );
 
         await this.emailService.sendEmail(
           user?.email ?? '',
@@ -175,13 +240,7 @@ export class OrdersService {
             cep: fullOrder.order_delivery_address?.cep,
             state: fullOrder.order_delivery_address?.state?.name,
             city: fullOrder.order_delivery_address?.city?.name,
-            products: fullOrder.order_items.map((i) => ({
-              id: i.product.uid,
-              name: i.product.name,
-              quantity: i.quantity,
-              price: i.total_price,
-              imagem: i.product.product_image[0]?.img_url ?? '',
-            })),
+            products,
           },
         );
 
@@ -203,13 +262,7 @@ export class OrdersService {
               cep: fullOrder.order_delivery_address?.cep,
               state: fullOrder.order_delivery_address?.state?.name,
               city: fullOrder.order_delivery_address?.city?.name,
-              products: fullOrder.order_items.map((i) => ({
-                id: i.product.uid,
-                name: i.product.name,
-                quantity: i.quantity,
-                price: i.total_price,
-                imagem: i.product.product_image[0]?.img_url ?? '',
-              })),
+              products,
             },
           );
         }
@@ -227,13 +280,18 @@ export class OrdersService {
     return this.prisma.order.findMany({
       include: {
         user: true,
-        workshop: true,
-        order_items: {
+        order_services: {
           include: {
-            product: true,
-            variant: true,
+            transformation_workshop: true,
+            order_item: {
+              include: {
+                product: true,
+                variant: true,
+              },
+            },
           },
         },
+        order_delivery_address: true,
       },
     });
   }
@@ -243,17 +301,21 @@ export class OrdersService {
       where: { id },
       include: {
         user: true,
-        workshop: {
-          include: { state: true, city: true },
+        order_services: {
+          include: {
+            order_item: {
+              include: {
+                product: true,
+                variant: true,
+              },
+            },
+            transformation_workshop: {
+              include: { state: true, city: true },
+            },
+          }
         },
         order_delivery_address: {
           include: { state: true, city: true },
-        },
-        order_items: {
-          include: {
-            product: true,
-            variant: true,
-          },
         },
       },
     });
@@ -275,9 +337,13 @@ export class OrdersService {
           order_delivery_address: {
             include: { state: true, city: true },
           },
-          order_items: {
+          order_services: {
             include: {
-              product: { include: { product_image: true } },
+              order_item: {
+                include: {
+                  product: { include: { product_image: true } },
+                },
+              },
             },
           },
         },
@@ -291,10 +357,14 @@ export class OrdersService {
       if (updateOrderDto.items && updateOrderDto.items.length > 0) {
         // Deleta os itens antigos
         await this.prisma.order_item.deleteMany({
-          where: { order_fk: id },
+          where: {
+            order_service: {
+              order_fk: id,
+            },
+          },
         });
 
-        const items: Prisma.order_itemCreateWithoutOrderInput[] = [];
+        const items: any[] = [];
 
         for (const item of updateOrderDto.items) {
           // Busca o produto
@@ -325,16 +395,22 @@ export class OrdersService {
           0,
         );
 
-        // Cria os novos itens no pedido
-        await this.prisma.order.update({
-          where: { id },
-          data: {
-            total_amount: total,
-            order_items: {
-              create: items,
-            },
-          },
+        // Atualizar o serviço de pedido com os novos itens
+        const orderService = await this.prisma.order_service.findFirst({
+          where: { order_fk: id },
         });
+
+        if (orderService) {
+          await this.prisma.order_service.update({
+            where: { id: orderService.id },
+            data: {
+              total_amount: total,
+              order_item: {
+                create: items,
+              },
+            },
+          });
+        }
       }
 
       // Atualiza os outros dados do pedido (opcional)
@@ -342,40 +418,83 @@ export class OrdersService {
         where: { id },
         data: {
           notes: updateOrderDto.observation,
-          status: updateOrderDto.status,
           payment_status: updateOrderDto.payment_status,
           updatedAt: new Date(),
         },
         include: {
-          order_items: true,
+          order_services: {
+            include: {
+              order_item: true,
+            },
+          },
         },
       });
 
+      // Atualizar status do order_service se houver
+      if (updateOrderDto.status) {
+        const orderService = await this.prisma.order_service.findFirst({
+          where: { order_fk: id },
+        });
+
+        if (orderService) {
+          await this.prisma.order_service.update({
+            where: { id: orderService.id },
+            data: { status: updateOrderDto.status },
+          });
+        }
+      }
+
       if (updateOrderDto.status === 'SHIPPED') {
-        await this.emailService.sendEmail(
-          existingOrder.user?.email ?? '',
-          'Pedido enviado',
-          'shippingOrder.hbs',
-          {
-            name_client: existingOrder.user?.name,
-            id_order: existingOrder.uid,
-            total_amount: existingOrder.total_amount,
-            payment_method: existingOrder.payment_method,
-            address: existingOrder.order_delivery_address?.address,
-            number: existingOrder.order_delivery_address?.number,
-            neighborhood: existingOrder.order_delivery_address?.neighborhood,
-            cep: existingOrder.order_delivery_address?.cep,
-            state: existingOrder.order_delivery_address?.state?.name,
-            city: existingOrder.order_delivery_address?.city?.name,
-            products: existingOrder.order_items.map((i) => ({
+        // Buscar os dados completos novamente para enviar email
+        const fullOrder = await this.prisma.order.findUnique({
+          where: { id },
+          include: {
+            user: true,
+            order_delivery_address: {
+              include: { state: true, city: true },
+            },
+            order_services: {
+              include: {
+                order_item: {
+                  include: {
+                    product: { include: { product_image: true } },
+                  },
+                },
+              },
+            },
+          },
+        });
+
+        if (fullOrder?.user) {
+          const products = fullOrder.order_services.flatMap((service: any) =>
+            service.order_item.map((i: any) => ({
               id: i.product.uid,
               name: i.product.name,
               quantity: i.quantity,
               price: i.total_price,
               imagem: i.product.product_image[0]?.img_url ?? '',
-            })),
-          },
-        );
+            }))
+          );
+
+          await this.emailService.sendEmail(
+            fullOrder.user.email ?? '',
+            'Pedido enviado',
+            'shippingOrder.hbs',
+            {
+              name_client: fullOrder.user.name,
+              id_order: fullOrder.uid,
+              total_amount: fullOrder.total_amount,
+              payment_method: fullOrder.payment_method,
+              address: fullOrder.order_delivery_address?.address,
+              number: fullOrder.order_delivery_address?.number,
+              neighborhood: fullOrder.order_delivery_address?.neighborhood,
+              cep: fullOrder.order_delivery_address?.cep,
+              state: fullOrder.order_delivery_address?.state?.name,
+              city: fullOrder.order_delivery_address?.city?.name,
+              products,
+            },
+          );
+        }
       }
 
       return updatedOrder;

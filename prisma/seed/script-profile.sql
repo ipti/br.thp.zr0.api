@@ -31,6 +31,8 @@ INSERT INTO page_permission (profileId, page, `create`, `read`, `update`, `delet
 (2, 'product/create', 0, 0, 0, 0),
 (2, 'product/update', 0, 0, 0, 0),
 (2, 'product/one', 0, 0, 0, 0),
+(2, 'canceled-orders', 0, 0, 0, 0),
+(2, 'canceled-orders/one', 0, 0, 0, 0),
 (2, 'transformation-workshop', 0, 1, 1, 0),
 (2, 'transformation-workshop/create', 0, 0, 0, 0),
 (2, 'transformation-workshop/member', 1, 1, 1, 1),
@@ -53,6 +55,8 @@ INSERT INTO page_permission (profileId, page, `create`, `read`, `update`, `delet
 (3, 'product/create', 0, 0, 0, 0),
 (3, 'product/update', 0, 0, 0, 0),
 (3, 'product/one', 0, 0, 0, 0),
+(3, 'canceled-orders', 0, 0, 0, 0),
+(3, 'canceled-orders/one', 0, 0, 0, 0),
 (3, 'transformation-workshop', 0, 1, 0, 0),
 (3, 'transformation-workshop/create', 0, 0, 0, 0),
 (3, 'transformation-workshop/member', 1, 1, 1, 1),
@@ -67,7 +71,7 @@ INSERT INTO page_permission (profileId, page, `create`, `read`, `update`, `delet
 
 -- USER (acesso a todas as páginas como leitura apenas)
 INSERT INTO page_permission (profileId, page, `create`, `read`, `update`, `delete`) VALUES
-(4, '*', TRUE, TRUE, TRUE, TRUE);
+(4, '*', FALSE, FALSE, FALSE, FALSE);
 
 -- =======================
 -- Tabela menu_item
@@ -80,7 +84,8 @@ INSERT INTO menu_item (profileId, label, link, icon, `order`) VALUES
 (1, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 4),
 (1, 'Categorias', '/seller/category', 'pi pi-tag', 5),
 (1, 'Produtos', '/seller/product', 'pi pi-server', 6),
-(1, 'Usuários', '/seller/user', 'pi pi-users', 7);
+(1, 'Produtos Cancelados', '/seller/canceled-orders', 'pi pi-times-circle', 7),
+(1, 'Usuários', '/seller/user', 'pi pi-users', 8);
 
 
 -- SELLER_MANAGER

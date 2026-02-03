@@ -4,11 +4,12 @@ import { PrismaModule } from 'src/prisma/prisma.module';
 import { OrdersBffService } from './shared/orders_bff.service';
 import { OrdersBffController } from './orders_bff.controller';
 import { UsersService } from 'src/users/shared/users.service';
+import { EmailService } from 'src/utils/middleware/email.middleware';
 
 @Module({
   imports: [PrismaModule, forwardRef(() => AuthModule)],
   controllers: [OrdersBffController],
-  providers: [OrdersBffService, UsersService],
+  providers: [OrdersBffService, UsersService, EmailService],
   exports: [OrdersBffService],
 })
 export class OrdersBffModule {}

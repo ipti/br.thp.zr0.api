@@ -209,7 +209,7 @@ export class OrdersService {
         );
 
         await this.paymentService.createPaymentIntent(
-          Math.round((fullOrder.total_amount + totalShippingCost) * 100),
+          Math.round((fullOrder.total_amount) * 100),
           'BRL',
           order.id
         );
@@ -431,14 +431,25 @@ export class OrdersService {
       });
 
       // Atualizar status do order_service se houver
-      if (updateOrderDto.status) {
-        const orderService = await this.prisma.order_service.findFirst({
-          where: { order_fk: id },
+      if (updateOrderDto.status === 'SOLITED_CANCELLATION') {
+        const orderService = await this.prisma.order_service.findMany({
+          where: { order_fk: id }
         });
 
-        if (orderService) {
+         for(var i of orderService) {
           await this.prisma.order_service.update({
-            where: { id: orderService.id },
+            where: { id: i.id },
+            data: { status: updateOrderDto.status },
+          });
+        }
+      } else {
+         const orderService = await this.prisma.order_service.findMany({
+          where: { order_fk: id }
+        });
+
+         for(var i of orderService) {
+          await this.prisma.order_service.update({
+            where: { id: i.id },
             data: { status: updateOrderDto.status },
           });
         }

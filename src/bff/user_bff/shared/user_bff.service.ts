@@ -1,9 +1,9 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import * as bcrypt from 'bcrypt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/users/shared/users.service';
-import { CreateUserBffDto } from '../dto/create-user.dto';
-import * as bcrypt from 'bcrypt';
 import { CreateUserCustomerBffDto } from '../dto/create-user-customer.dto';
+import { CreateUserBffDto } from '../dto/create-user.dto';
 
 @Injectable()
 export class UserBffService {
@@ -169,12 +169,6 @@ export class UserBffService {
                   },
                 }
               },
-
-              _count: {
-                select: {
-                  order_services: true
-                }
-              }
             }
           }
         },
@@ -269,6 +263,7 @@ export class UserBffService {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
   }
+
 
   async hashPassword(password: string): Promise<string> {
     const saltRounds = 10;

@@ -180,6 +180,7 @@ export class TransformationWorkshopBffService {
                 order: {
                   select: {
                     payment_status: true,
+                    uid: true,
                   },
                 },
               },

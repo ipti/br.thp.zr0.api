@@ -13,7 +13,14 @@ export class PaymentService {
     const payment = await stripe.paymentIntents.create({
       amount,
       currency,
-      payment_method_types: ['card'],
+      payment_method_types: ['card', 'boleto'],
+      payment_method_options: {
+        card: {
+          installments: {
+            enabled: true,
+          },
+        },
+  },
     },
       //  { idempotencyKey: idOrder.toString() } 
     );
@@ -75,7 +82,23 @@ export class PaymentService {
     });
 
     if (order) {
-      await this.prisma.order.update({ where: { id: idOrder }, data: { payment_status: 'REFUNDED'}, })
+      const orders_services = await this.prisma.order_service.findMany({
+        where: {
+          order_fk: order.id
+        }
+      })
+
+      for(const os of orders_services){
+        await this.prisma.order_service.update({
+          where: {
+            id: os.id
+          },
+          data: {
+            status: 'CANCELLED'
+          }
+        })
+      }
+
     }
 
     const products = order.order_services.flatMap((service) =>
@@ -103,6 +126,7 @@ export class PaymentService {
   }
 
   async handleWebhook(event) {
+
     try {
       switch (event.type) {
         case 'payment_intent.succeeded':
@@ -115,6 +139,12 @@ export class PaymentService {
           const failedIntent = event.data.object as Stripe.PaymentIntent;
           this.updateOrderStatus(failedIntent.id, 'FAILED');
           console.warn('❌ Payment failed:', failedIntent.id);
+          break;
+
+        case 'charge.refund.updated':
+          const refundIntent = event.data.object as Stripe.Refund;
+          this.updateOrderStatus(refundIntent.payment_intent?.toString() ?? '', 'REFUNDED');
+          console.warn('❌ Payment refund:', refundIntent.payment_intent);
           break;
 
         default:
@@ -179,9 +209,11 @@ export class PaymentService {
         await this.prisma.order.update({ 
           where: { id: order.id }, 
           data: { 
-            payment_status: status === 'PAID' ? 'PAID' : status === 'FAILED' ? 'FAILED' : order.payment_status,
+            payment_status: status === 'PAID' ? 'PAID' : status === 'FAILED' ? 'FAILED' : status === 'REFUNDED' ? 'REFUNDED' : order.payment_status,
           } 
         });
+
+        console.log('Status do pedido atualizado para:', status);
 
         // Atualizar status dos order_services se o pagamento foi confirmado
         if (status === 'PAID') {

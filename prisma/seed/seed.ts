@@ -17,16 +17,35 @@ async function main() {
 
   const statements: string[] = [];
 
+  // Robust SQL splitter: process file line-by-line, ignore -- comments,
+  // and collect statements that end with a semicolon. This avoids issues
+  // with naive split(';') when comments or stray newlines exist.
   for (const file of files) {
     const sqlPath = join(__dirname, file);
     const sql = readFileSync(sqlPath, 'utf8');
 
-    statements.push(
-      ...sql
-        .split(';')
-        .map((s) => s.trim())
-        .filter((s) => s.length > 0),
-    );
+    const lines = sql.split(/\r?\n/);
+    let buffer = '';
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+
+      // skip SQL single-line comments or empty lines
+      if (line.startsWith('--') || line === '') continue;
+
+      // append the original line (preserve spacing inside values)
+      buffer += (buffer ? '\n' : '') + rawLine;
+
+      // if the (trimmed) line ends with semicolon, we consider the statement complete
+      if (line.endsWith(';')) {
+        const stmt = buffer.replace(/;\s*$/, '').trim();
+        if (stmt.length > 0) statements.push(stmt);
+        buffer = '';
+      }
+    }
+
+    // if anything left in buffer (file didn't end with semicolon), push it too
+    if (buffer.trim().length > 0) statements.push(buffer.trim());
   }
 
   for (const statement of statements) {

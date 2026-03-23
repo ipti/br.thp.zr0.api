@@ -16,4 +16,4 @@ RUN npm run build
 RUN mkdir -p ./archives && chown -R www-data:www-data ./archives
 
 EXPOSE 80
-CMD ["npm", "run", "start:migrate:prod"]
+CMD sh -c "npx prisma migrate deploy && npm run seed && exec node dist/src/main.js"

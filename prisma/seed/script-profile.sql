@@ -97,7 +97,7 @@ INSERT INTO menu_item (profileId, label, link, icon, `order`) VALUES
 (2, 'Usuários', '/seller/user', 'pi pi-users', 5);
 
 
--- SELLER
+
 INSERT INTO menu_item (profileId, label, link, icon, `order`) VALUES
 (3, 'Oficinas de Transformações', '/seller/transformation-workshop', 'pi pi-home', 1),
 (3, 'Pedidos da OT', '/seller/transformation-workshop/orders', 'pi pi-receipt', 2),

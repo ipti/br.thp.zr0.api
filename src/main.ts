@@ -14,9 +14,38 @@ dotenv.config();
 
 declare const module: any;
 
+// Startup logging and global error handlers to help diagnose production startup failures.
+process.on('uncaughtException', (err) => {
+  console.error('uncaughtException -', err && err.stack ? err.stack : err);
+});
+
+process.on('unhandledRejection', (reason) => {
+  console.error('unhandledRejection -', reason);
+});
+
 async function bootstrap() {
+  console.log('Starting application...');
+  console.log('NODE_ENV=', process.env.NODE_ENV ?? 'undefined');
+  console.log('APP_PORT=', process.env.APP_PORT ?? 3000);
+  try {
+    // Redact DATABASE_URL in logs but indicate presence
+    const hasDb = !!process.env.DATABASE_URL;
+    console.log('DATABASE_URL present=', hasDb);
+  } catch (e) {
+    console.warn('Failed to read DATABASE_URL presence', e);
+  }
+
   const app = await NestFactory.create(AppModule);
 
+  // Quick health check for Prisma/DB connection early in startup
+  try {
+    const prismaService = app.get(PrismaService);
+    // small ping query
+    await prismaService.$queryRaw`SELECT 1`;
+    console.log('Database ping successful');
+  } catch (err) {
+    console.error('Database ping failed during startup:', err);
+  }
 
   app.enableCors({
     credentials: true,

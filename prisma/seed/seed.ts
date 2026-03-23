@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { readFileSync } from 'fs';
+import { readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import * as bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
@@ -48,11 +48,32 @@ async function main() {
     if (buffer.trim().length > 0) statements.push(buffer.trim());
   }
 
-  for (const statement of statements) {
+  function snippet(s: string, n = 200) {
+    if (!s) return '';
+    if (s.length <= n) return s;
+    return s.slice(0, n) + ' ... ' + s.slice(-n);
+  }
+
+  for (let i = 0; i < statements.length; i++) {
+    const statement = statements[i];
     try {
+      console.log(`Executing SQL statement ${i + 1}/${statements.length} (len=${statement.length})`);
+      console.log('Statement head/tail:', snippet(statement, 200));
       await prisma.$executeRawUnsafe(statement);
     } catch (error) {
-      console.error(`Erro ao executar: ${statement}`);
+      console.error(`Erro ao executar statement index=${i} (len=${statement.length}):`);
+      console.error('Full statement:\n', statement);
+
+      try {
+        const ts = new Date().toISOString().replace(/[:.]/g, '-');
+        const outPath = join(__dirname, `failed-seed-statement-${i + 1}-${ts}.sql`);
+        writeFileSync(outPath, statement, 'utf8');
+        console.error(`Wrote failing statement to: ${outPath}`);
+      } catch (writeErr) {
+        console.error('Failed to write failing statement to disk:', writeErr);
+      }
+
+      // Re-throw the original error so the process exits with failure as before
       throw error;
     }
   }

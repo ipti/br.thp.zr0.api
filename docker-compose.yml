@@ -24,7 +24,7 @@ services:
     image: mysql:8.0
     container_name: mysql
     restart: always
-    command: --max_allowed_packet=32505856
+     command: mysqld --sql_mode="" --max_allowed_packet=32505856
     ports:
       - 3306:3306
     environment:

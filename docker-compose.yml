@@ -21,10 +21,10 @@ services:
     restart: unless-stopped
 
   db:
-    image: mariadb
-    container_name: mariadb
+    image: mysql:8.0
+    container_name: mysql
     restart: always
-    command: --max_allowed_packet=32505856  --memlock=1
+    command: --max_allowed_packet=32505856
     ports:
       - 3306:3306
     environment:

@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y openssl libssl-dev && rm -rf /var/lib/a
 RUN npx prisma generate
 RUN npm run build
 
+RUN PORT=80
+
 RUN mkdir -p ./archives && chown -R www-data:www-data ./archives
 
 EXPOSE 80

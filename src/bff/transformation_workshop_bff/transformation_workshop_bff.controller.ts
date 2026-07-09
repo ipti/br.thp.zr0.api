@@ -75,6 +75,8 @@ export class TransformationWorkshopBffController {
   }
 
   @Post('add-user')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   create(@Body() body: AddUserTransformationWorkshopDto, @Req() req: Request) {
     return this.transformationWorkshopBffService.addUserTransformationWorkshop(
       body,

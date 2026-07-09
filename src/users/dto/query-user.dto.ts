@@ -1,8 +1,9 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { Transform } from 'class-transformer';
 import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
-export class QueryUserDto {
+export class QueryUserDto extends PaginationDto {
   @IsOptional()
   @IsString()
   @ApiProperty({ required: false })

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query, Req } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -10,6 +10,8 @@ import { UpdateCartDto } from './dto/update-cart.dto';
 import { QueryCartDto } from './dto/query-cart.dto';
 import { CartResponse } from './doc/cart.response';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { CreateCartItemDto } from './dto/create-cart-item.dto';
+import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 
 @Controller('cart')
 @ApiBearerAuth('access-token')
@@ -27,6 +29,26 @@ export class CartController {
   @ApiOkResponse({ type: [CartResponse] })
   async findAll(@Query() query: QueryCartDto) {
     return this.cartService.findAll(query);
+  }
+
+  @Get('me/items')
+  async findMyCart(@Req() req: any) {
+    return this.cartService.getMyCart(req.user.id);
+  }
+
+  @Post('items')
+  async addItem(@Req() req: any, @Body() body: CreateCartItemDto) {
+    return this.cartService.addItem(req.user.id, body);
+  }
+
+  @Patch('items/:id')
+  async updateItem(@Req() req: any, @Param('id') id: string, @Body() body: UpdateCartItemDto) {
+    return this.cartService.updateItem(req.user.id, +id, body);
+  }
+
+  @Delete('items/:id')
+  async removeItem(@Req() req: any, @Param('id') id: string) {
+    return this.cartService.removeItem(req.user.id, +id);
   }
 
   @Get(':id')

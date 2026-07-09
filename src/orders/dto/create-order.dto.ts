@@ -11,11 +11,17 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+import { PaymentMethod } from '@prisma/client';
 
 export class CreateOrderItemDto {
   @IsString()
   @ApiProperty()
   productId: string;
+
+  @IsOptional()
+  @IsNumber()
+  @ApiProperty({ required: false })
+  variantId?: number;
 
   @IsInt()
   @ApiProperty()
@@ -100,6 +106,15 @@ export class CreateOrderDto {
   @ApiProperty()
   @IsOptional()
   observation?: string;
+
+  @ApiProperty({ required: false, enum: PaymentMethod })
+  @IsOptional()
+  payment_method?: PaymentMethod;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  coupon_code?: string;
 
   @ApiProperty()
   @IsOptional()

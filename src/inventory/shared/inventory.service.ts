@@ -102,17 +102,34 @@ export class InventoryService {
 
   async findAll(query: QueryInventoryDto) {
     try {
+      const { page = 1, limit = 20, ...rest } = query;
+      const skip = (page - 1) * limit;
       const selectInfo = {
         id: true,
         quantity: true
       };
 
-      const filters = isEmpty(query) ? {} : { ...query };
+      const filters = isEmpty(rest) ? {} : { ...rest };
 
-      return await this.prisma.inventory.findMany({
-        select: { ...selectInfo, product: true, transformation_workshop: true },
-        where: filters,
-      });
+      const [data, total] = await Promise.all([
+        this.prisma.inventory.findMany({
+          skip,
+          take: limit,
+          select: { ...selectInfo, product: true, transformation_workshop: true },
+          where: filters,
+        }),
+        this.prisma.inventory.count({ where: filters }),
+      ]);
+
+      return {
+        data,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
 
     } catch (err) {
       console.error('Erro ao buscar estoque:', err);

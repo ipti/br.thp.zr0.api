@@ -6,11 +6,13 @@ import {
   Patch,
   Param,
   Delete,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
 import { TransformationWorkshopService } from './transformation_workshop.service';
 import { CreateTransformationWorkshopDto } from './dto/create-transformation_workshop.dto';
+import { QueryTransformationWorkshopDto } from './dto/query-transformation_workshop.dto';
 import { UpdateTransformationWorkshopDto } from './dto/update-transformation_workshop.dto';
 import { Request } from 'express';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
@@ -36,8 +38,8 @@ export class TransformationWorkshopController {
   }
 
   @Get()
-  findAll() {
-    return this.transformationWorkshopService.findAll();
+  findAll(@Query() query: QueryTransformationWorkshopDto) {
+    return this.transformationWorkshopService.findAll(query);
   }
 
   @Get(':id')

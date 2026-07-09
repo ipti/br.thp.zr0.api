@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 
 import { ShippingService } from '../shipping/shipping.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateOrderDto } from './dto/create-checkout.dto';
+import { CreateOrderDto, CreateStockReservationDto } from './dto/create-checkout.dto';
 import { CheckoutResult } from './entities/checkout.entity';
 
 @Injectable()
@@ -91,5 +91,78 @@ export class CheckoutService {
         status: 'pending',
       },
     };
+  }
+
+  async releaseExpiredReservations() {
+    const released = await this.prisma.stock_reservation.deleteMany({
+      where: {
+        expires_at: { lte: new Date() },
+        order_fk: null,
+      },
+    });
+
+    return { released: released.count };
+  }
+
+  async reserveStock(dto: CreateStockReservationDto) {
+    await this.releaseExpiredReservations();
+
+    const products = await this.prisma.product.findMany({
+      where: { uid: { in: dto.items.map((item) => item.productId) } },
+      select: { id: true, uid: true },
+    });
+    const productMap = new Map(products.map((product) => [product.uid, product.id]));
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
+    return this.prisma.$transaction(async (tx) => {
+      await tx.stock_reservation.deleteMany({
+        where: {
+          user_fk: dto.userId,
+          order_fk: null,
+        },
+      });
+
+      for (const item of dto.items) {
+        const productId = productMap.get(item.productId);
+        if (!productId) {
+          throw new Error(`Product ${item.productId} not found`);
+        }
+
+        const stock = await tx.transformation_workshop_product.findFirst({
+          where: {
+            transformation_workshop_fk: item.workshopId,
+            product_fk: productId,
+          },
+        });
+
+        const reserved = await tx.stock_reservation.aggregate({
+          _sum: { quantity: true },
+          where: {
+            product_fk: productId,
+            transformation_workshop_fk: item.workshopId,
+            expires_at: { gt: new Date() },
+          },
+        });
+
+        const reservedQuantity = reserved._sum.quantity ?? 0;
+        const availableQuantity = (stock?.quantity ?? 0) - reservedQuantity;
+
+        if (!stock || availableQuantity < item.quantity) {
+          throw new Error(`Insufficient stock for product ${item.productId}`);
+        }
+
+        await tx.stock_reservation.create({
+          data: {
+            product: { connect: { id: productId } },
+            transformation_workshop: { connect: { id: item.workshopId } },
+            user: { connect: { id: dto.userId } },
+            quantity: item.quantity,
+            expires_at: expiresAt,
+          },
+        });
+      }
+
+      return { expiresAt };
+    });
   }
 }

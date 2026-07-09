@@ -9,6 +9,7 @@ import { EmailService } from '..//utils/middleware/email.middleware';
 @Module({
   controllers: [PaymentController, StripeWebhookController],
   providers: [PaymentService, StripeService, EmailService],
-  imports: [PrismaModule]
+  imports: [PrismaModule],
+  exports: [PaymentService],
 })
 export class PaymentModule {}

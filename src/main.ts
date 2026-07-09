@@ -27,6 +27,22 @@ async function bootstrap() {
   console.log('Starting application...');
   console.log('NODE_ENV=', process.env.NODE_ENV ?? 'undefined');
   console.log('APP_PORT=', process.env.APP_PORT ?? 3000);
+  const REQUIRED_ENV = [
+    'SECRET',
+    'DATABASE_URL',
+    'STRIPE_SECRET_KEY',
+    'STRIPE_WEBHOOK_SECRET',
+    'MELHOR_ENVIO_API_TOKEN',
+    'SITE',
+    'MAIL_HOST',
+  ];
+
+  for (const key of REQUIRED_ENV) {
+    if (!process.env[key]) {
+      throw new Error(`Missing required environment variable: ${key}`);
+    }
+  }
+
   try {
     // Redact DATABASE_URL in logs but indicate presence
     const hasDb = !!process.env.DATABASE_URL;

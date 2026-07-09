@@ -1,4 +1,5 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { PaymentMethod } from '@prisma/client';
 import { StripeService } from '../stripe/stripe.service';
 import { PrismaService } from '../prisma/prisma.service';
 import Stripe from 'stripe';
@@ -8,20 +9,38 @@ import { EmailService } from '../utils/middleware/email.middleware';
 export class PaymentService {
   constructor(private readonly stripeService: StripeService, private readonly prisma: PrismaService, private readonly emailService: EmailService,) { }
 
-  async createPaymentIntent(amount: number, currency: string, idOrder: number) {
+  async createPaymentIntent(
+    amount: number,
+    currency: string,
+    idOrder: number,
+    paymentMethod?: PaymentMethod,
+  ) {
     const stripe = this.stripeService.getStripeClient();
+    const normalizedMethod = paymentMethod ?? 'PIX';
+    const paymentMethodTypes: string[] =
+      normalizedMethod === 'PIX'
+        ? ['pix']
+        : normalizedMethod === 'BANK_SLIP'
+          ? ['boleto']
+          : ['card'];
     const payment = await stripe.paymentIntents.create({
       amount,
       currency,
-      payment_method_types: ['card', 'boleto'],
+      payment_method_types: paymentMethodTypes,
       payment_method_options: {
         card: {
           installments: {
             enabled: true,
           },
         },
-  },
-    },
+        pix: {
+          expires_after_seconds: 3600,
+        },
+        boleto: {
+          expires_after_days: 3,
+        },
+      },
+    } as any,
       //  { idempotencyKey: idOrder.toString() } 
     );
 
@@ -305,7 +324,12 @@ export class PaymentService {
         );
         return paymentIntent
       } else {
-        return await this.createPaymentIntent(order?.total_amount ?? 0, 'BRL', order?.id)
+        return await this.createPaymentIntent(
+          order?.total_amount ?? 0,
+          'BRL',
+          order?.id,
+          order?.payment_method ?? undefined,
+        )
       }
 
     } catch (error) {

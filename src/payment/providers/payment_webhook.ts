@@ -1,22 +1,21 @@
 import {
+  BadRequestException,
+  InternalServerErrorException,
   Controller,
   Headers,
   Post,
   Req,
   Res,
   RawBodyRequest,
-  UseInterceptors,
 } from '@nestjs/common';
 // import { StripeProvider } from './stripe.provider';
 import { Request, Response } from 'express';
 import { ApiTags } from '@nestjs/swagger';
 import Stripe from 'stripe';
-import { RawBodyInterceptor } from '../../utils/rawBodyInterceptor';
 import { PaymentService } from '../payment.service';
 
 @ApiTags('StripeWebhook')
 @Controller()
-@UseInterceptors(RawBodyInterceptor)
 export class StripeWebhookController {
   private stripe: Stripe;
   
@@ -35,8 +34,21 @@ constructor(private readonly payment: PaymentService) {
     @Headers('stripe-signature') signature: string,
   ) {
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET ?? '';
-
     const rawBody = req.body;
+
+    if (!signature) {
+      throw new BadRequestException('Missing stripe-signature header');
+    }
+
+    if (!endpointSecret) {
+      throw new InternalServerErrorException(
+        'STRIPE_WEBHOOK_SECRET is not configured',
+      );
+    }
+
+    if (!Buffer.isBuffer(rawBody)) {
+      throw new BadRequestException('Webhook body must be raw Buffer');
+    }
 
     let event: Stripe.Event;
 
@@ -47,11 +59,13 @@ constructor(private readonly payment: PaymentService) {
         endpointSecret,
       );
     } catch (err) {
-      console.log(err.message)
-      res.status(400).send(`Webhook Error: ${err.message}`);
+      const message =
+        err instanceof Error ? err.message : 'Invalid webhook signature';
+      console.log(message);
+      res.status(400).send(`Webhook Error: ${message}`);
       return;
     }
-    console.log(event)
+
     await this.payment.handleWebhook(event);
     res.status(200).send('Webhook received');
   }

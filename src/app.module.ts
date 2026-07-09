@@ -24,6 +24,8 @@ import { CartModule } from './cart/cart.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { AddressCustomerModule } from './address_customer/address_customer.module';
 import { PaymentModule } from './payment/payment.module';
+import { WishlistModule } from './wishlist/wishlist.module';
+import { CouponModule } from './coupon/coupon.module';
 
 @Module({
   imports: [
@@ -48,7 +50,9 @@ import { PaymentModule } from './payment/payment.module';
     CartModule,
     InventoryModule,
     AddressCustomerModule,
-    PaymentModule
+    PaymentModule,
+    WishlistModule,
+    CouponModule,
   ],
   controllers: [AppController],
   providers: [AppService],

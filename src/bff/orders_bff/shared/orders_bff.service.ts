@@ -14,13 +14,13 @@ export class OrdersBffService {
 
   async ordersFromWorkshopTransformation(twId: number) {
     try {
-      const tw = this.prisma.order.findMany({
+      const tw = await this.prisma.order.findMany({
         orderBy: {
           createdAt: 'desc'
         },
         where: {
           order_services: {
-            every: { transformation_workshop_fk: twId }
+            some: { transformation_workshop_fk: twId }
           },
         },
       })
@@ -176,7 +176,11 @@ export class OrdersBffService {
         if (orderService) {
           await this.prisma.order_service.update({
             where: { id: orderService.id },
-            data: { status: updateOrderDto.status },
+            data: {
+              status: updateOrderDto.status,
+              tracking_code: updateOrderDto.tracking_code,
+              tracking_carrier: updateOrderDto.tracking_carrier,
+            },
           });
         }
       }
@@ -228,6 +232,8 @@ export class OrdersBffService {
               cep: fullOrder.order_delivery_address?.cep,
               state: fullOrder.order_delivery_address?.state?.name,
               city: fullOrder.order_delivery_address?.city?.name,
+              tracking_code: fullOrder.order_services[0]?.tracking_code,
+              tracking_carrier: fullOrder.order_services[0]?.tracking_carrier,
               products,
             },
           );

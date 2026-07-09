@@ -5,11 +5,11 @@ import { StripeService } from 'src/stripe/stripe.service';
 import { EmailService } from 'src/utils/middleware/email.middleware';
 import { OrdersController } from './orders.controller';
 import { OrdersService } from './orders.service';
-import { PaymentService } from 'src/payment/payment.service';
+import { CouponModule } from 'src/coupon/coupon.module';
 
 @Module({
   controllers: [OrdersController],
-  providers: [OrdersService, EmailService, StripeService, PaymentService],
-  imports: [PrismaModule, PaymentModule],
+  providers: [OrdersService, EmailService, StripeService],
+  imports: [PrismaModule, PaymentModule, CouponModule],
 })
 export class OrdersModule {}

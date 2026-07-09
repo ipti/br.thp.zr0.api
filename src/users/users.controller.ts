@@ -1,4 +1,6 @@
 import {
+  ForbiddenException,
+  UseGuards,
   Body,
   Controller,
   Delete,
@@ -9,10 +11,11 @@ import {
   Query,
   Req,
 } from '@nestjs/common';
-import { ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiCreatedResponse, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { UserResponse } from './doc/users.response';
-import { CreateUserDto } from './dto/create-user.dto';
+import { CreateUserAdminDto, CreateUserDto } from './dto/create-user.dto';
 import { QueryUserDto } from './dto/query-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UsersService } from './shared/users.service';
@@ -50,6 +53,18 @@ export class UsersController {
     return user;
   }
 
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
+  @Post('admin')
+  @ApiCreatedResponse({ type: UserResponse })
+  async createByAdmin(@Req() req: Request, @Body() userCreate: CreateUserAdminDto) {
+    if ((req as any).user?.role !== 'ADMIN') {
+      throw new ForbiddenException('Only admins can create privileged users');
+    }
+
+    return this.usersService.createByAdmin(userCreate);
+  }
+
   @Get()
   @ApiOkResponse({ type: [UserResponse] })
   async getAll(@Query() query: QueryUserDto) {
@@ -70,13 +85,22 @@ export class UsersController {
   }
 
   @Put(':id')
+  @ApiBearerAuth('access-token')
+  @UseGuards(JwtAuthGuard)
   @ApiCreatedResponse({ type: UserResponse })
   async update(
     @Req() req: Request,
     @Param('id') id: string,
     @Body() user: UpdateUserDto,
   ) {
-    return this.usersService.update(+id, user, '1');
+    const targetUserId = +id;
+    const requester = req.user as any;
+
+    if (requester?.id !== targetUserId && requester?.role !== 'ADMIN') {
+      throw new ForbiddenException('You can only update your own user');
+    }
+
+    return this.usersService.update(targetUserId, user, requester?.email ?? '');
   }
 
   @Delete(':id')

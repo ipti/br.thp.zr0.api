@@ -32,6 +32,21 @@ export class ShippingService {
           include: { transformation_workshop: true },
         });
 
+      const reservations = await this.prisma.stock_reservation.groupBy({
+        by: ['transformation_workshop_fk'],
+        _sum: { quantity: true },
+        where: {
+          product_fk: product?.id,
+          expires_at: { gt: new Date() },
+        },
+      });
+      const reservationsMap = new Map(
+        reservations.map((reservation) => [
+          reservation.transformation_workshop_fk,
+          reservation._sum.quantity ?? 0,
+        ]),
+      );
+
       const quantity_tw = await Promise.all(
         product_tw.map(async (p) => {
           const priceFrete = await this.meuEnvioShippingStrategy.calculatePrice(
@@ -39,7 +54,10 @@ export class ShippingService {
             p.transformation_workshop?.cep ?? ''
           );
           return {
-            quantity: p.quantity,
+            quantity: Math.max(
+              0,
+              p.quantity - (reservationsMap.get(p.transformation_workshop_fk ?? 0) ?? 0),
+            ),
             workshopId: p.transformation_workshop_fk,
             price: priceFrete
           };

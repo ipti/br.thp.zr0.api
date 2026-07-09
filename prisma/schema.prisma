@@ -23,11 +23,15 @@ model users {
   password                     String                         @db.VarChar(60)
   active                       Boolean                        @default(true)
   verify_email                 Boolean                        @default(false)
+  deletedAt                    DateTime?
   createdAt                    DateTime                       @default(now())
   updatedAt                    DateTime                       @updatedAt
   customer                     customer?
   transformation_workshop_user transformation_workshop_user[]
   order                        order[]
+  stock_reservation            stock_reservation[]
+  product_review               product_review[]
+  wishlist_item                wishlist_item[]
 }
 
 model customer {
@@ -88,6 +92,7 @@ model transformation_workshop {
   number                          String?                           @db.VarChar(10)
   complement                      String?                           @db.VarChar(100)
   neighborhood                    String?                           @db.VarChar(100)
+  deletedAt                       DateTime?
   createdAt                       DateTime                          @default(now())
   updatedAt                       DateTime                          @updatedAt
   transformation_workshop_user    transformation_workshop_user[]
@@ -99,6 +104,7 @@ model transformation_workshop {
   production                      production[]
   inventory                       inventory[]
   order_service                   order_service[]
+  stock_reservation               stock_reservation[]
 }
 
 model transformation_workshop_product {
@@ -144,6 +150,7 @@ model city {
 model category {
   id        Int       @id @default(autoincrement())
   name      String
+  deletedAt DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
   product   product[]
@@ -165,6 +172,7 @@ model product {
   name                            String
   description                     String
   price                           Float?
+  deletedAt                       DateTime?
   createdAt                       DateTime                          @default(now())
   updatedAt                       DateTime                          @updatedAt
   category_fk                     Int
@@ -180,6 +188,9 @@ model product {
   order_item                      order_item[]
   cartItem                        cartItem[]
   inventory                       inventory[]
+  stock_reservation               stock_reservation[]
+  product_review                  product_review[]
+  wishlist_item                   wishlist_item[]
 }
 
 model product_image {
@@ -200,10 +211,14 @@ model order {
   payment_status         PaymentStatus           @default(PENDING)
   payment_method         PaymentMethod?
   payment_intent_id      String?                 @unique
+  discount_amount        Float                   @default(0)
+  coupon_fk              Int?
+  coupon                 coupon?                 @relation(fields: [coupon_fk], references: [id])
   order_delivery_address order_delivery_address?
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
   order_services         order_service[]
+  stock_reservation      stock_reservation[]
 }
 
 model order_service {
@@ -213,6 +228,8 @@ model order_service {
   transformation_workshop    transformation_workshop? @relation(fields: [transformation_workshop_fk], references: [id])
   status                     OrderStatus              @default(PENDING)
   total_amount               Float                    @default(0)
+  tracking_code              String?
+  tracking_carrier           String?
   createdAt                  DateTime                 @default(now())
   updatedAt                  DateTime                 @updatedAt
 
@@ -283,6 +300,7 @@ model product_variant {
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
   order_item order_item[]
+  cart_items cartItem[]
 }
 
 model cart {
@@ -295,12 +313,14 @@ model cart {
 }
 
 model cartItem {
-  id         Int     @id @default(autoincrement())
+  id         Int              @id @default(autoincrement())
   cart_fk    Int
   product_fk Int
   quantity   Int
-  cart       cart    @relation(fields: [cart_fk], references: [id])
-  product    product @relation(fields: [product_fk], references: [id])
+  variant_fk Int?
+  variant    product_variant? @relation(fields: [variant_fk], references: [id])
+  cart       cart             @relation(fields: [cart_fk], references: [id])
+  product    product          @relation(fields: [product_fk], references: [id])
 }
 
 model inventory {
@@ -314,6 +334,68 @@ model inventory {
 
   @@id([transformation_workshop_fk, product_fk])
   @@unique([transformation_workshop_fk, product_fk])
+}
+
+model stock_reservation {
+  id                         Int                     @id @default(autoincrement())
+  product_fk                 Int
+  transformation_workshop_fk Int
+  quantity                   Int
+  user_fk                    Int
+  expires_at                 DateTime
+  order_fk                   Int?
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+  product                    product                 @relation(fields: [product_fk], references: [id])
+  transformation_workshop    transformation_workshop @relation(fields: [transformation_workshop_fk], references: [id])
+  user                       users                   @relation(fields: [user_fk], references: [id])
+  order                      order?                  @relation(fields: [order_fk], references: [id])
+
+  @@index([product_fk, transformation_workshop_fk])
+  @@index([user_fk])
+  @@index([expires_at])
+}
+
+model product_review {
+  id         Int      @id @default(autoincrement())
+  product_fk Int
+  user_fk    Int
+  rating     Int
+  comment    String?  @db.VarChar(1000)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  product    product  @relation(fields: [product_fk], references: [id])
+  user       users    @relation(fields: [user_fk], references: [id])
+
+  @@unique([product_fk, user_fk])
+  @@index([product_fk])
+}
+
+model wishlist_item {
+  id         Int      @id @default(autoincrement())
+  user_fk    Int
+  product_fk Int
+  createdAt  DateTime @default(now())
+  user       users    @relation(fields: [user_fk], references: [id])
+  product    product  @relation(fields: [product_fk], references: [id])
+
+  @@unique([user_fk, product_fk])
+  @@index([user_fk])
+}
+
+model coupon {
+  id              Int          @id @default(autoincrement())
+  code            String       @unique
+  discount_type   CouponType
+  discount_value  Float
+  min_order_value Float?
+  max_uses        Int?
+  uses_count      Int          @default(0)
+  expires_at      DateTime?
+  active          Boolean      @default(true)
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  order           order[]
 }
 
 model inventory_entry {
@@ -401,4 +483,9 @@ enum PaymentMethod {
   DEBIT_CARD
   BANK_SLIP
   CASH
+}
+
+enum CouponType {
+  PERCENT
+  FIXED
 }

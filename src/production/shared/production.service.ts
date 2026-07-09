@@ -4,6 +4,7 @@ import { UpdateProductionDto } from '../dto/update-production.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { isEmpty } from 'class-validator';
 import { QueryProductionDto } from '../dto/query-production.dto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class ProductionService {
@@ -30,6 +31,8 @@ export class ProductionService {
 
   async findAll(query: QueryProductionDto) {
     try {
+      const { page = 1, limit = 20, ...rest } = query;
+      const skip = (page - 1) * limit;
       const selectInfo = {
         id: true,
         date_start: true,
@@ -37,12 +40,48 @@ export class ProductionService {
         status: true,
         quantity: true,
       };
-      const filters = isEmpty(query) ? {} : { ...query };
+      const filters: Prisma.productionWhereInput = isEmpty(rest)
+        ? {}
+        : {
+            ...(rest.id !== undefined ? { id: Number(rest.id) } : {}),
+            ...(rest.dateStart !== undefined
+              ? { date_start: new Date(rest.dateStart) }
+              : {}),
+            ...(rest.dateEnd !== undefined
+              ? { date_end: new Date(rest.dateEnd) }
+              : {}),
+            ...(rest.status !== undefined ? { status: rest.status } : {}),
+            ...(rest.quantity !== undefined ? { quantity: rest.quantity } : {}),
+            ...(rest.idProduct !== undefined
+              ? { product_fk: rest.idProduct }
+              : {}),
+            ...(rest.idTransformationWorkshop !== undefined
+              ? {
+                  transformation_workshop_fk:
+                    rest.idTransformationWorkshop,
+                }
+              : {}),
+          };
 
-      return await this.prisma.production.findMany({
-        select: { ...selectInfo, product: true, transformation_workshop: true },
-        where: filters,
-      });
+      const [data, total] = await Promise.all([
+        this.prisma.production.findMany({
+          skip,
+          take: limit,
+          select: { ...selectInfo, product: true, transformation_workshop: true },
+          where: filters,
+        }),
+        this.prisma.production.count({ where: filters }),
+      ]);
+
+      return {
+        data,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
     } catch (err) {
       console.error('Erro ao buscar produção:', err);
       throw new HttpException(
@@ -81,8 +120,8 @@ export class ProductionService {
           date_end: updateProductionDto.dateEnd,
           quantity: updateProductionDto.quantity,
           status: updateProductionDto.status,
-          product: { connect: { id: updateProductionDto.idTransformationWorkshop ?? production.transformation_workshop_fk! } },
-          transformation_workshop: { connect: { id: updateProductionDto.idProduct ?? production.product_fk! } },
+          product: { connect: { id: updateProductionDto.idProduct ?? production.product_fk! } },
+          transformation_workshop: { connect: { id: updateProductionDto.idTransformationWorkshop ?? production.transformation_workshop_fk! } },
         },
       });
 

@@ -1,13 +1,14 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Role } from '@prisma/client';
 import {
+  IsEmail,
   IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsOptional,
   IsString,
-  Length,
   MaxLength,
+  MinLength,
 } from 'class-validator';
 
 export class CreateUserDto {
@@ -23,14 +24,16 @@ export class CreateUserDto {
   @ApiProperty()
   username: string;
 
-  @IsOptional()
-  @Length(5, 128)
+  @IsNotEmpty()
+  @IsEmail()
+  @MaxLength(128)
   @ApiProperty()
   email: string;
 
   @IsNotEmpty()
   @MaxLength(45)
   @IsString()
+  @MinLength(8)
   @ApiProperty()
   password: string;
 
@@ -38,7 +41,9 @@ export class CreateUserDto {
   @IsBoolean()
   @ApiProperty({ required: false, default: 1 })
   active?: boolean;
+}
 
+export class CreateUserAdminDto extends CreateUserDto {
   @IsOptional()
   @IsEnum(Role)
   @ApiProperty({ required: false, default: Role.ADMIN })

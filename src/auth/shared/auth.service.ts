@@ -28,9 +28,8 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const payload = { email: user.email, sub: user.id };
-
     const userRegistered = await this.usersService.findOneByEmail(user.email);
+    const payload = { email: user.email, sub: user.id, role: userRegistered.role };
 
     await this.usersService.findVerifyEmail(user.id);
 
@@ -41,9 +40,8 @@ export class AuthService {
   }
 
   async generateToken(user: any) {
-    const payload = { email: user.email, sub: user.id };
-
     const userRegistered = await this.usersService.findOneByEmail(user.email);
+    const payload = { email: user.email, sub: user.id, role: userRegistered.role };
 
     return {
       access_token: this.jwtStrategy.generateSignToken(payload),
@@ -52,9 +50,8 @@ export class AuthService {
   }
 
   async generateTokenPasswordRec(user: any) {
-    const payload = { email: user.email, sub: user.id };
-
     const userRegistered = await this.usersService.findOneByEmail(user.email);
+    const payload = { email: user.email, sub: user.id, role: userRegistered.role };
 
     return {
       access_token: this.jwtStrategy.generatePasswordRecToken(payload),

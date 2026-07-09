@@ -32,7 +32,7 @@ export class AuxUserController {
       user.email,
       'Verificação de email',
       'verifyEmail.hbs',
-      { verificationLink: link, name: user.active },
+      { verificationLink: link, name: user.name },
     );
 
     return user;
@@ -51,7 +51,7 @@ export class AuxUserController {
       user.email,
       'Verificação de email',
       'verifyEmail.hbs',
-      { verificationLink: link, name: user.active },
+      { verificationLink: link, name: user.name },
     );
 
     return user;

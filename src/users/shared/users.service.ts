@@ -1,8 +1,9 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
+import { Role } from '@prisma/client';
 import { isEmpty } from 'class-validator';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { CreateUserDto } from '../dto/create-user.dto';
+import { CreateUserAdminDto, CreateUserDto } from '../dto/create-user.dto';
 import { QueryUserDto } from '../dto/query-user.dto';
 import { UpdateUserDto } from '../dto/update-user.dto';
 
@@ -11,6 +12,17 @@ export class UsersService {
   constructor(private readonly prisma: PrismaService) { }
 
   async create(createUserDto: CreateUserDto) {
+    return this.createWithRole(createUserDto, Role.CUSTOMER);
+  }
+
+  async createByAdmin(createUserDto: CreateUserAdminDto) {
+    return this.createWithRole(createUserDto, createUserDto.role ?? Role.CUSTOMER);
+  }
+
+  private async createWithRole(
+    createUserDto: CreateUserDto,
+    role: Role,
+  ) {
     const userRegistered = await this.prisma.users.findMany({
       where: { email: createUserDto.email },
     });
@@ -23,7 +35,7 @@ export class UsersService {
     try {
       const transaction = await this.prisma.$transaction(async (tx) => {
         const createdUser = await tx.users.create({
-          data: { ...createUserDto, password: hashedPassword },
+          data: { ...createUserDto, role, password: hashedPassword },
         });
 
         if (createdUser.role === 'CUSTOMER') {
@@ -42,9 +54,11 @@ export class UsersService {
       console.log(err);
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
-  }
+  } 
 
   async findAll(query: QueryUserDto) {
+    const { page = 1, limit = 20, ...rest } = query;
+    const skip = (page - 1) * limit;
     const selectInfo = {
       id: true,
       name: true,
@@ -52,12 +66,27 @@ export class UsersService {
       active: true,
       password: false,
     };
-    const filters = isEmpty(query) ? {} : { ...query };
+    const filters = { deletedAt: null, ...(isEmpty(rest) ? {} : { ...rest }) };
 
-    return this.prisma.users.findMany({
-      select: { ...selectInfo, role: true },
-      where: filters,
-    });
+    const [data, total] = await Promise.all([
+      this.prisma.users.findMany({
+        skip,
+        take: limit,
+        select: { ...selectInfo, role: true },
+        where: filters,
+      }),
+      this.prisma.users.count({ where: filters }),
+    ]);
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
   }
 
   async findOne(id: number) {
@@ -67,13 +96,14 @@ export class UsersService {
         id: true,
         name: true,
         active: true,
+        deletedAt: true,
         password: false,
         role: true,
         email: true,
       },
     });
 
-    if (!user) {
+    if (!user || user.deletedAt) {
       throw new HttpException('User not found', HttpStatus.NOT_FOUND);
     }
 
@@ -101,7 +131,7 @@ export class UsersService {
 
   async findOneByEmail(email: string) {
     const user = await this.prisma.users.findFirst({
-      where: { email: email },
+      where: { email: email, deletedAt: null },
     });
 
     if (!user) {
@@ -113,7 +143,7 @@ export class UsersService {
 
   async verifyByEmail(email: string) {
     const user = await this.prisma.users.findFirst({
-      where: { email: email },
+      where: { email: email, deletedAt: null },
     });
 
     return { email: email, exists: user ? true : false };
@@ -121,7 +151,7 @@ export class UsersService {
 
   async findVerifyEmail(id: number) {
     const user = await this.prisma.users.findFirst({
-      where: { id: id },
+      where: { id: id, deletedAt: null },
     });
 
     if (!user?.verify_email) {
@@ -138,8 +168,9 @@ export class UsersService {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }
 
-      await this.prisma.users.delete({
+      await this.prisma.users.update({
         where: { id: user.id },
+        data: { deletedAt: new Date() },
       });
 
       return { message: 'User deleted successfully' };

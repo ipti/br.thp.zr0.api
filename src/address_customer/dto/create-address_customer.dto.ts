@@ -4,6 +4,7 @@ import {
     IsNumber,
     IsOptional,
     IsString,
+    Matches,
     MaxLength,
 } from 'class-validator';
 
@@ -24,6 +25,7 @@ export class CreateAddressCustomerDto {
 
     @IsOptional()
     @IsString()
+    @Matches(/^\d{8}$/, { message: 'CEP deve conter 8 dígitos numéricos' })
     @MaxLength(191)
     @ApiProperty()
     cep: string;

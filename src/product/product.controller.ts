@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  ForbiddenException,
   Get,
   Param,
   Post,
@@ -55,6 +56,48 @@ export class ProductController {
   @ApiOkResponse({ type: [ProductResponse] })
   async getAll(@Query() query: QueryProductDto) {
     return this.productsService.findAll(query);
+  }
+
+  @Get(':uid/reviews')
+  async getReviews(
+    @Param('uid') uid: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.productsService.getReviews(
+      uid,
+      page ? Number(page) : 1,
+      limit ? Number(limit) : 10,
+    );
+  }
+
+  @Post(':uid/review')
+  @UseGuards(JwtAuthGuard)
+  async createReview(
+    @Req() req: any,
+    @Param('uid') uid: string,
+    @Body() body: { rating: number; comment?: string },
+  ) {
+    return this.productsService.createReview(
+      uid,
+      req.user.id,
+      Number(body.rating),
+      body.comment,
+    );
+  }
+
+  @Delete(':uid/review/:reviewId')
+  @UseGuards(JwtAuthGuard)
+  async deleteReview(
+    @Req() req: any,
+    @Param('uid') uid: string,
+    @Param('reviewId') reviewId: string,
+  ) {
+    if (req.user?.role !== 'ADMIN') {
+      throw new ForbiddenException('Only admins can delete reviews');
+    }
+
+    return this.productsService.deleteReview(uid, Number(reviewId));
   }
 
   @Get(':id')

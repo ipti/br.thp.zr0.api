@@ -17,7 +17,7 @@ export class UserBffService {
       const user = await this.usersService.findOne(userId);
       if (user.role === 'ADMIN') {
         const getUser = await this.usersService.findAll({});
-        return getUser;
+        return getUser.data;
       }
       const getUser = await this.prisma.users.findMany({
         where: {
@@ -202,6 +202,7 @@ export class UserBffService {
             name: createUserDto.name,
             password: hashedPassword,
             role: createUserDto.role,
+            verify_email: true,
           },
         });
 

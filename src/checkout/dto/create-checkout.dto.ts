@@ -11,3 +11,12 @@ export class CreateOrderDto {
   }[];
   paymentMethod: PaymentMethod;
 }
+
+export class CreateStockReservationDto {
+  userId: number;
+  items: {
+    productId: string;
+    workshopId: number;
+    quantity: number;
+  }[];
+}

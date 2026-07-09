@@ -1,19 +1,33 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateOrderDto } from './dto/create-order.dto';
+import { QueryOrderDto } from './dto/query-order.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UpdateOrderDto } from './dto/update-order.dto';
 import { Prisma } from '@prisma/client';
+import { UpdateOrderDto } from './dto/update-order.dto';
 import { EmailService } from 'src/utils/middleware/email.middleware';
 import { PaymentService } from 'src/payment/payment.service';
+import { randomUUID } from 'crypto';
+import { CouponService } from 'src/coupon/coupon.service';
 @Injectable()
 export class OrdersService {
-  constructor(private readonly prisma: PrismaService, private readonly emailService: EmailService, private readonly paymentService: PaymentService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+    private readonly paymentService: PaymentService,
+    private readonly couponService: CouponService,
+  ) {}
+
+  private generateUid(prefix: string) {
+    return `${prefix}-${randomUUID().slice(0, 8).toUpperCase()}`;
+  }
 
   async create(createOrderDto: CreateOrderDto) {
-    const { userId, items, observation, address } = createOrderDto;
+    const { userId, items, observation, address, payment_method, coupon_code } =
+      createOrderDto;
 
     // Agrupar por workshop
     const workshops = [...new Set(items.map((i) => i.workshopId))];
+    const now = new Date();
 
     // Buscar todos os produtos de uma vez
     const productIds = items.map((i) => String(i.productId));
@@ -36,6 +50,19 @@ export class OrdersService {
         wp,
       ]),
     );
+    const activeReservations = await this.prisma.stock_reservation.findMany({
+      where: {
+        transformation_workshop_fk: { in: workshops },
+        product_fk: { in: products.map((i) => i.id) },
+        expires_at: { gt: now },
+        NOT: { user_fk: userId },
+      },
+    });
+    const reservationMap = new Map<string, number>();
+    for (const reservation of activeReservations) {
+      const key = `${reservation.transformation_workshop_fk}-${reservation.product_fk}`;
+      reservationMap.set(key, (reservationMap.get(key) ?? 0) + reservation.quantity);
+    }
 
     const workshopUsersManagers = await this.prisma.transformation_workshop_user.findMany({
       where: {
@@ -49,24 +76,24 @@ export class OrdersService {
       }
     });
 
+    const subtotalWithoutDiscount = items.reduce((acc, item) => {
+      const product = productMap.get(item.productId);
+      const itemPrice = product?.price ?? 0;
+      return acc + itemPrice * item.quantity + (item.delivery_estimate?.cost ?? 0);
+    }, 0);
+
+    const validCoupon = coupon_code
+      ? await this.couponService.validateCoupon(coupon_code, subtotalWithoutDiscount)
+      : null;
+    const discountAmount = validCoupon?.discount ?? 0;
+
     const createdOrdersData = await this.prisma.$transaction(async (tx) => {
       const createdOrders: any[] = [];
 
       const date = new Date(Date.now());
-      const currentYear = date.getFullYear();
-      const startOfYear = new Date(currentYear, 0, 1);
-      const endOfYear = new Date(currentYear, 11, 31, 23, 59, 59);
-
-      const order_list = await tx.order.findMany({
-        where: {
-          createdAt: {
-            gte: startOfYear,
-            lte: endOfYear,
-          },
-        },
-      });
-
-      const uid = date.getFullYear().toString() + String(date.getMonth() + 1).padStart(2, '0') + String(order_list.length + 1).padStart(4, '0');
+      const uid = this.generateUid(
+        `ZR-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`,
+      );
 
       // Criar pedido principal uma única vez
       const order = await tx.order.create({
@@ -75,6 +102,11 @@ export class OrdersService {
           uid: uid,
           total_amount: 0, // será atualizado depois
           notes: observation,
+          payment_method: payment_method ?? 'PIX',
+          discount_amount: discountAmount,
+          ...(validCoupon
+            ? { coupon: { connect: { id: validCoupon.id } } }
+            : {}),
         },
       });
 
@@ -97,8 +129,10 @@ export class OrdersService {
 
             const wpKey = `${workshopId}-${product.id}`;
             const twProduct = workshopProductMap.get(wpKey);
+            const reservedQuantity = reservationMap.get(wpKey) ?? 0;
+            const availableQuantity = (twProduct?.quantity ?? 0) - reservedQuantity;
 
-            if (!twProduct || twProduct.quantity < item.quantity) {
+            if (!twProduct || availableQuantity < item.quantity) {
               throw new HttpException(
                 `Estoque insuficiente para produto ${item.productId} no workshop ${workshopId}`,
                 HttpStatus.BAD_REQUEST,
@@ -110,25 +144,19 @@ export class OrdersService {
               unit_price: unitPrice,
               total_price: totalPrice,
               product: { connect: { id: product.id } },
+              ...(item.variantId
+                ? { variant: { connect: { id: item.variantId } } }
+                : {}),
               delivery_estimate: item.delivery_estimate,
             };
           });
 
         const workshopTotal = itemsForWorkshop.reduce((acc, i) => acc + i.total_price + i.delivery_estimate.cost, 0);
         totalOrderAmount += workshopTotal;
+        const uid_service = this.generateUid(
+          `OS-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`,
+        );
 
-   const order_service_list = await tx.order_service.findMany({
-        where: {
-          createdAt: {
-            gte: startOfYear,
-            lte: endOfYear,
-          },
-        },
-      });
-
-      const uid_service = date.getFullYear().toString() + String(date.getMonth() + 1).padStart(2, '0') + String(order_service_list.length + 1).padStart(4, '0');
-
-        
         const orderService = await tx.order_service.create({
           data: {
             uid: uid_service,
@@ -171,7 +199,29 @@ export class OrdersService {
       // Atualizar o total do pedido
       await tx.order.update({
         where: { id: order.id },
-        data: { total_amount: totalOrderAmount },
+        data: {
+          total_amount: Math.max(0, totalOrderAmount - discountAmount),
+        },
+      });
+
+      if (validCoupon) {
+        await tx.coupon.update({
+          where: { id: validCoupon.id },
+          data: {
+            uses_count: {
+              increment: 1,
+            },
+          },
+        });
+      }
+
+      await tx.stock_reservation.updateMany({
+        where: {
+          user_fk: userId,
+          expires_at: { gt: new Date() },
+          order_fk: null,
+        },
+        data: { order_fk: order.id },
       });
 
       createdOrders.push(order);
@@ -209,9 +259,10 @@ export class OrdersService {
         );
 
         await this.paymentService.createPaymentIntent(
-          Math.round((fullOrder.total_amount) * 100),
+          Math.round(fullOrder.total_amount * 100),
           'BRL',
-          order.id
+          order.id,
+          fullOrder.payment_method ?? undefined,
         );
 
         // Preparar produtos para email
@@ -269,6 +320,16 @@ export class OrdersService {
       }
     }
 
+    const customerCart = await this.prisma.cart.findFirst({
+      where: { customer: { user_fk: userId } },
+    });
+
+    if (customerCart) {
+      await this.prisma.cartItem.deleteMany({
+        where: { cart_fk: customerCart.id },
+      });
+    }
+
     return {
       message: 'Pedidos criados com sucesso!',
       orders: createdOrdersData.map((o) => ({ id: o.id, uid: o.uid })),
@@ -276,24 +337,46 @@ export class OrdersService {
 
   }
 
-  async findAll() {
-    return this.prisma.order.findMany({
-      include: {
-        user: true,
-        order_services: {
-          include: {
-            transformation_workshop: true,
-            order_item: {
-              include: {
-                product: true,
-                variant: true,
+  async findAll(query: QueryOrderDto) {
+    const { page = 1, limit = 20, payment_status } = query;
+    const skip = (page - 1) * limit;
+    const where: Prisma.orderWhereInput = payment_status
+      ? { payment_status }
+      : {};
+
+    const [data, total] = await Promise.all([
+      this.prisma.order.findMany({
+        skip,
+        take: limit,
+        where,
+        include: {
+          user: true,
+          order_services: {
+            include: {
+              transformation_workshop: true,
+              order_item: {
+                include: {
+                  product: true,
+                  variant: true,
+                },
               },
             },
           },
+          order_delivery_address: true,
         },
-        order_delivery_address: true,
+      }),
+      this.prisma.order.count({ where }),
+    ]);
+
+    return {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
       },
-    });
+    };
   }
 
   async findOne(id: number) {

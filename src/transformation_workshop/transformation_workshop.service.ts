@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { CreateTransformationWorkshopDto } from './dto/create-transformation_workshop.dto';
+import { QueryTransformationWorkshopDto } from './dto/query-transformation_workshop.dto';
 import { UpdateTransformationWorkshopDto } from './dto/update-transformation_workshop.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -38,11 +39,24 @@ export class TransformationWorkshopService {
     }
   }
 
-  async findAll() {
+  async findAll(query: QueryTransformationWorkshopDto) {
     try {
-      const transformation_workshop =
-        await this.prisma.transformation_workshop.findMany();
-      return transformation_workshop;
+      const { page = 1, limit = 20, ...rest } = query;
+      const skip = (page - 1) * limit;
+      const where = { deletedAt: null, ...rest };
+      const [data, total] = await Promise.all([
+        this.prisma.transformation_workshop.findMany({ skip, take: limit, where }),
+        this.prisma.transformation_workshop.count({ where }),
+      ]);
+      return {
+        data,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+        },
+      };
     } catch (err) {
       console.log(err);
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
@@ -76,10 +90,9 @@ export class TransformationWorkshopService {
   async remove(id: number) {
     try {
       const transformation_workshop =
-        await this.prisma.transformation_workshop.delete({
-          where: {
-            id: id,
-          },
+        await this.prisma.transformation_workshop.update({
+          where: { id: id },
+          data: { deletedAt: new Date() },
         });
       return transformation_workshop;
     } catch (err) {

@@ -14,14 +14,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  generateSignToken(payload: { sub: any; email: any }) {
+  generateSignToken(payload: { sub: any; email: any; role: any }) {
     return this.jwtService.sign(payload, {
       secret: jwtConstants.secret,
       expiresIn: '7200s',
     });
   }
 
-  generatePasswordRecToken(payload: { sub: any; email: any }) {
+  generatePasswordRecToken(payload: { sub: any; email: any; role: any }) {
     return this.jwtService.sign(payload, {
       secret: jwtConstants.secret,
       expiresIn: '600s',

@@ -1,32 +1,34 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { PaginationDto } from 'src/common/dto/pagination.dto';
 import { IsOptional } from 'class-validator';
 
-export class QueryProductionDto {
+export class QueryProductionDto extends PaginationDto {
+    @IsOptional()
     @ApiProperty({ description: "Production's id" })
-    id: string;
+    id?: string;
 
     @IsOptional()
     @ApiProperty()
-    dateStart: string;
+    dateStart?: string;
 
     @IsOptional()
     @ApiProperty()
-    dateEnd: string;
+    dateEnd?: string;
 
     @IsOptional()
     @ApiProperty()
-    status: string;
+    status?: string;
 
     @IsOptional()
     @ApiProperty()
-    quantity: number;
+    quantity?: number;
 
     @IsOptional()
     @ApiProperty()
-    idProduct: number;
+    idProduct?: number;
 
     @IsOptional()
     @ApiProperty()
-    idTransformationWorkshop: number;
+    idTransformationWorkshop?: number;
 
 }

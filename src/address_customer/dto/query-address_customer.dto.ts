@@ -1,11 +1,12 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional } from 'class-validator';
+import { IsOptional, Matches } from 'class-validator';
 
 export class QueryAddressCustomerDto {
     @ApiProperty({ description: "Billing Address Customer's id" })
     id: string;
 
     @IsOptional()
+    @Matches(/^\d{8}$/, { message: 'CEP deve conter 8 dígitos numéricos' })
     @ApiProperty()
     cep: string;
 

@@ -21,9 +21,17 @@ export class ProductBffService {
           },
         });
 
+      const reserved = await this.prisma.stock_reservation.aggregate({
+        _sum: { quantity: true },
+        where: {
+          product_fk: product.id,
+          expires_at: { gt: new Date() },
+        },
+      });
+
       const quantity = tw_product
         .map((item) => item.quantity)
-        .reduce((prev, curr) => prev + curr, 0);
+        .reduce((prev, curr) => prev + curr, 0) - (reserved._sum.quantity ?? 0);
 
       return {
 
@@ -45,9 +53,17 @@ export class ProductBffService {
           },
         });
 
+      const reserved = await this.prisma.stock_reservation.aggregate({
+        _sum: { quantity: true },
+        where: {
+          product_fk: product.id,
+          expires_at: { gt: new Date() },
+        },
+      });
+
       const quantity = tw_product
         .map((item) => item.quantity)
-        .reduce((prev, curr) => prev + curr, 0);
+        .reduce((prev, curr) => prev + curr, 0) - (reserved._sum.quantity ?? 0);
 
       return {
         name: product.name,
@@ -56,7 +72,10 @@ export class ProductBffService {
         createdAt: product.createdAt,
         price: product.price,
         product_image: product.product_image,
-        quantity: quantity
+        quantity: quantity,
+        averageRating: (product as any).averageRating ?? 0,
+        reviewCount: (product as any).reviewCount ?? 0,
+        product_review: (product as any).product_review ?? [],
       };
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
@@ -74,9 +93,17 @@ export class ProductBffService {
           },
         });
 
+      const reserved = await this.prisma.stock_reservation.aggregate({
+        _sum: { quantity: true },
+        where: {
+          product_fk: product.id,
+          expires_at: { gt: new Date() },
+        },
+      });
+
       const quantity = tw_product
         .map((item) => item.quantity)
-        .reduce((prev, curr) => prev + curr, 0);
+        .reduce((prev, curr) => prev + curr, 0) - (reserved._sum.quantity ?? 0);
 
       return {
         ...product,

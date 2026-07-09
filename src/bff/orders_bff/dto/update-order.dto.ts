@@ -34,6 +34,14 @@ export class UpdateOrderDto {
   @IsOptional()
   payment_status?: PaymentStatus; // Se você tiver um enum de status no modelo
 
+  @IsString()
+  @IsOptional()
+  tracking_code?: string;
+
+  @IsString()
+  @IsOptional()
+  tracking_carrier?: string;
+
   @IsNumber()
   @IsNotEmpty()
   id_order_service: number;

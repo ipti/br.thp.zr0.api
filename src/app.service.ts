@@ -11,7 +11,7 @@ export class AppService {
       'http://localhost:3001',
       'https://zro-app.azurewebsites.net',
       'http://zro-app.azurewebsites.net',
-      'https://br-thp-zro-app.azurewebsites.net/'
+      'https://br-thp-zro-app.azurewebsites.net'
     ];
   }
 }

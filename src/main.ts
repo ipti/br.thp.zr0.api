@@ -63,14 +63,21 @@ async function bootstrap() {
     console.error('Database ping failed during startup:', err);
   }
 
+  const allowedOrigins: string[] = new AppService().getOrigins();
+  console.log('CORS allowed origins:', allowedOrigins);
+
   app.enableCors({
     credentials: true,
-    origin: async (
-      requestOrigin: string,
-      next: (err: Error | null, origin?: string[]) => void,
+    origin: (
+      requestOrigin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void,
     ) => {
-      const origins = await app.get(AppService).getOrigins();
-      next(null, origins);
+      if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
+        callback(null, true);
+      } else {
+        console.warn('CORS blocked origin:', requestOrigin);
+        callback(new Error('Not allowed by CORS'));
+      }
     },
   });
 

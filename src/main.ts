@@ -1,7 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { AppService } from './app.service';
 import * as session from 'express-session';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { PrismaService } from './prisma/prisma.service';
@@ -63,22 +62,9 @@ async function bootstrap() {
     console.error('Database ping failed during startup:', err);
   }
 
-  const allowedOrigins: string[] = new AppService().getOrigins();
-  console.log('CORS allowed origins:', allowedOrigins);
-
   app.enableCors({
     credentials: true,
-    origin: (
-      requestOrigin: string | undefined,
-      callback: (err: Error | null, allow?: boolean) => void,
-    ) => {
-      if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
-        callback(null, true);
-      } else {
-        console.warn('CORS blocked origin:', requestOrigin);
-        callback(new Error('Not allowed by CORS'));
-      }
-    },
+    origin: true,
   });
 
   

@@ -32,6 +32,11 @@ export class QueryProductDto extends PaginationDto {
    @ApiPropertyOptional({ description: 'Filter by category ID' })
    categoryId?: string;
 
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({ description: 'Filter by category slug' })
+  category?: string;
+
    @IsOptional()
    @IsIn(['price_asc', 'price_desc', 'name_asc', 'newest'])
    @ApiPropertyOptional({ enum: ['price_asc', 'price_desc', 'name_asc', 'newest'] })

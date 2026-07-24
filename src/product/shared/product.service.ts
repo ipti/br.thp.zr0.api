@@ -13,6 +13,38 @@ export class ProductsService {
     private readonly azureService: AzureProviderService,
   ) {}
 
+  private normalizeCategoryKey(value: string) {
+    return value
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
+  }
+
+  private async resolveCategoryId(category?: string) {
+    if (!category) {
+      return undefined;
+    }
+
+    const numericCategory = Number(category);
+    if (Number.isInteger(numericCategory) && numericCategory > 0) {
+      return numericCategory;
+    }
+
+    const normalizedCategory = this.normalizeCategoryKey(category);
+    const categories = await this.prisma.category.findMany({
+      where: { deletedAt: null },
+      select: { id: true, name: true },
+    });
+
+    const matchedCategory = categories.find(
+      (item) => this.normalizeCategoryKey(item.name) === normalizedCategory,
+    );
+
+    return matchedCategory?.id;
+  }
+
   async create(createProductDto: CreateProductDto, file) {
     try {
       const transaction = await this.prisma.$transaction(async (tx) => {
@@ -55,7 +87,7 @@ export class ProductsService {
   }
 
   async findAll(query: QueryProductDto) {
-    const { page = 1, limit = 20, q, categoryId, sort, ...rest } = query;
+    const { page = 1, limit = 20, q, categoryId, category, sort, ...rest } = query;
     const skip = (page - 1) * limit;
     const selectInfo = {
       id: true,
@@ -76,8 +108,10 @@ export class ProductsService {
       ];
     }
 
-    if (categoryId) {
-      filters.category_fk = Number(categoryId);
+    const resolvedCategoryId = categoryId ? Number(categoryId) : await this.resolveCategoryId(category);
+
+    if (resolvedCategoryId) {
+      filters.category_fk = resolvedCategoryId;
     }
 
     const orderBy: any =

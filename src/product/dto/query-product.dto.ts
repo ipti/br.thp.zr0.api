@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { IsNumber, IsOptional, IsString } from 'class-validator';
+import { IsIn, IsNumber, IsNumberString, IsOptional, IsString } from 'class-validator';
 
 export class QueryProductDto extends PaginationDto {
   @IsOptional()
@@ -26,4 +26,14 @@ export class QueryProductDto extends PaginationDto {
    @IsString()
    @ApiPropertyOptional()
    q?: string;
+
+   @IsOptional()
+   @IsNumberString()
+   @ApiPropertyOptional({ description: 'Filter by category ID' })
+   categoryId?: string;
+
+   @IsOptional()
+   @IsIn(['price_asc', 'price_desc', 'name_asc', 'newest'])
+   @ApiPropertyOptional({ enum: ['price_asc', 'price_desc', 'name_asc', 'newest'] })
+   sort?: string;
 }

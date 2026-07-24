@@ -55,7 +55,7 @@ export class ProductsService {
   }
 
   async findAll(query: QueryProductDto) {
-    const { page = 1, limit = 20, q, ...rest } = query;
+    const { page = 1, limit = 20, q, categoryId, sort, ...rest } = query;
     const skip = (page - 1) * limit;
     const selectInfo = {
       id: true,
@@ -76,6 +76,16 @@ export class ProductsService {
       ];
     }
 
+    if (categoryId) {
+      filters.category_fk = Number(categoryId);
+    }
+
+    const orderBy: any =
+      sort === 'price_asc'  ? { price: 'asc' } :
+      sort === 'price_desc' ? { price: 'desc' } :
+      sort === 'name_asc'   ? { name: 'asc' } :
+      { createdAt: 'desc' };
+
     const [data, total] = await Promise.all([
       this.prisma.product.findMany({
         skip,
@@ -89,6 +99,7 @@ export class ProductsService {
           },
         },
         where: filters,
+        orderBy,
       }),
       this.prisma.product.count({ where: filters }),
     ]);

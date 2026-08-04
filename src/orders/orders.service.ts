@@ -36,14 +36,13 @@ export class OrdersService {
     });
     const productMap = new Map(products.map((p) => [p.uid, p]));
 
-    // Buscar todos os produtos de workshop de uma vez
-    const workshopProducts =
-      await this.prisma.transformation_workshop_product.findMany({
-        where: {
-          transformation_workshop_fk: { in: workshops },
-          product_fk: { in: products.map((i) => i.id) },
-        },
-      });
+    // Buscar todos os produtos de workshop de uma vez (fonte de verdade: inventory)
+    const workshopProducts = await this.prisma.inventory.findMany({
+      where: {
+        transformation_workshop_fk: { in: workshops },
+        product_fk: { in: products.map((i) => i.id) },
+      },
+    });
     const workshopProductMap = new Map(
       workshopProducts.map((wp) => [
         `${wp.transformation_workshop_fk}-${wp.product_fk}`,
@@ -61,29 +60,38 @@ export class OrdersService {
     const reservationMap = new Map<string, number>();
     for (const reservation of activeReservations) {
       const key = `${reservation.transformation_workshop_fk}-${reservation.product_fk}`;
-      reservationMap.set(key, (reservationMap.get(key) ?? 0) + reservation.quantity);
+      reservationMap.set(
+        key,
+        (reservationMap.get(key) ?? 0) + reservation.quantity,
+      );
     }
 
-    const workshopUsersManagers = await this.prisma.transformation_workshop_user.findMany({
-      where: {
-        transformation_workshop_fk: { in: workshops },
-        users: { role: { in: ['SELLER', 'SELLER_MANAGER'] }, }
-      },
-      select: {
-        users: {
-          select: { email: true }
-        }
-      }
-    });
+    const workshopUsersManagers =
+      await this.prisma.transformation_workshop_user.findMany({
+        where: {
+          transformation_workshop_fk: { in: workshops },
+          users: { role: { in: ['SELLER', 'SELLER_MANAGER'] } },
+        },
+        select: {
+          users: {
+            select: { email: true },
+          },
+        },
+      });
 
     const subtotalWithoutDiscount = items.reduce((acc, item) => {
       const product = productMap.get(item.productId);
       const itemPrice = product?.price ?? 0;
-      return acc + itemPrice * item.quantity + (item.delivery_estimate?.cost ?? 0);
+      return (
+        acc + itemPrice * item.quantity + (item.delivery_estimate?.cost ?? 0)
+      );
     }, 0);
 
     const validCoupon = coupon_code
-      ? await this.couponService.validateCoupon(coupon_code, subtotalWithoutDiscount)
+      ? await this.couponService.validateCoupon(
+          coupon_code,
+          subtotalWithoutDiscount,
+        )
       : null;
     const discountAmount = validCoupon?.discount ?? 0;
 
@@ -130,7 +138,8 @@ export class OrdersService {
             const wpKey = `${workshopId}-${product.id}`;
             const twProduct = workshopProductMap.get(wpKey);
             const reservedQuantity = reservationMap.get(wpKey) ?? 0;
-            const availableQuantity = (twProduct?.quantity ?? 0) - reservedQuantity;
+            const availableQuantity =
+              (twProduct?.quantity ?? 0) - reservedQuantity;
 
             if (!twProduct || availableQuantity < item.quantity) {
               throw new HttpException(
@@ -151,7 +160,10 @@ export class OrdersService {
             };
           });
 
-        const workshopTotal = itemsForWorkshop.reduce((acc, i) => acc + i.total_price + i.delivery_estimate.cost, 0);
+        const workshopTotal = itemsForWorkshop.reduce(
+          (acc, i) => acc + i.total_price + i.delivery_estimate.cost,
+          0,
+        );
         totalOrderAmount += workshopTotal;
         const uid_service = this.generateUid(
           `OS-${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}`,
@@ -172,9 +184,25 @@ export class OrdersService {
           const wpKey = `${workshopId}-${item.product.connect.id}`;
           const twProduct = workshopProductMap.get(wpKey);
           if (twProduct) {
-            await tx.transformation_workshop_product.update({
-              where: { id: twProduct.id },
-              data: { quantity: twProduct.quantity - item.quantity },
+            // Debita o estoque e registra a saída dentro da mesma transação do
+            // pedido (não reaproveitar InventoryService aqui: seus métodos usam
+            // this.prisma diretamente, não o `tx`, o que quebraria a atomicidade
+            // do pedido caso ele falhe e sofra rollback depois do débito).
+            await tx.inventory.update({
+              where: {
+                transformation_workshop_fk_product_fk: {
+                  transformation_workshop_fk: workshopId,
+                  product_fk: item.product.connect.id,
+                },
+              },
+              data: { quantity: { decrement: item.quantity } },
+            });
+            await tx.inventory_exit.create({
+              data: {
+                transformation_workshop_fk: workshopId,
+                product_fk: item.product.connect.id,
+                quantity: item.quantity,
+              },
             });
           }
         }
@@ -251,11 +279,14 @@ export class OrdersService {
 
       if (fullOrder) {
         const totalShippingCost = fullOrder.order_services.reduce(
-          (acc: number, service: any) => acc + service.order_item.reduce(
-            (itemAcc: number, item: any) => itemAcc + (item.delivery_estimate?.cost ?? 0),
-            0
-          ),
-          0
+          (acc: number, service: any) =>
+            acc +
+            service.order_item.reduce(
+              (itemAcc: number, item: any) =>
+                itemAcc + (item.delivery_estimate?.cost ?? 0),
+              0,
+            ),
+          0,
         );
 
         await this.paymentService.createPaymentIntent(
@@ -273,7 +304,7 @@ export class OrdersService {
             quantity: i.quantity,
             price: i.total_price,
             imagem: i.product.product_image[0]?.img_url ?? '',
-          }))
+          })),
         );
 
         await this.emailService.sendEmail(
@@ -334,7 +365,6 @@ export class OrdersService {
       message: 'Pedidos criados com sucesso!',
       orders: createdOrdersData.map((o) => ({ id: o.id, uid: o.uid })),
     };
-
   }
 
   async findAll(query: QueryOrderDto) {
@@ -395,7 +425,7 @@ export class OrdersService {
             transformation_workshop: {
               include: { state: true, city: true },
             },
-          }
+          },
         },
         order_delivery_address: {
           include: { state: true, city: true },
@@ -516,21 +546,21 @@ export class OrdersService {
       // Atualizar status do order_service se houver
       if (updateOrderDto.status === 'SOLITED_CANCELLATION') {
         const orderService = await this.prisma.order_service.findMany({
-          where: { order_fk: id }
+          where: { order_fk: id },
         });
 
-         for(var i of orderService) {
+        for (var i of orderService) {
           await this.prisma.order_service.update({
             where: { id: i.id },
             data: { status: updateOrderDto.status },
           });
         }
       } else {
-         const orderService = await this.prisma.order_service.findMany({
-          where: { order_fk: id }
+        const orderService = await this.prisma.order_service.findMany({
+          where: { order_fk: id },
         });
 
-         for(var i of orderService) {
+        for (var i of orderService) {
           await this.prisma.order_service.update({
             where: { id: i.id },
             data: { status: updateOrderDto.status },
@@ -567,7 +597,7 @@ export class OrdersService {
               quantity: i.quantity,
               price: i.total_price,
               imagem: i.product.product_image[0]?.img_url ?? '',
-            }))
+            })),
           );
 
           await this.emailService.sendEmail(
@@ -594,10 +624,7 @@ export class OrdersService {
       return updatedOrder;
     } catch (err) {
       console.log(err);
-      throw new HttpException(
-        err,
-        HttpStatus.BAD_REQUEST,
-      );
+      throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
   }
 

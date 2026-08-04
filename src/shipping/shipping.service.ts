@@ -10,7 +10,7 @@ export class ShippingService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly meuEnvioShippingStrategy: MeuEnvioShippingStrategy,
-  ) { }
+  ) {}
 
   async calculate(dto: ShippingRequestDto) {
     const shipments: {
@@ -26,11 +26,10 @@ export class ShippingService {
       const product = await this.prisma.product.findFirst({
         where: { uid: orderItems.productId },
       });
-      const product_tw =
-        await this.prisma.transformation_workshop_product.findMany({
-          where: { product_fk: product?.id },
-          include: { transformation_workshop: true },
-        });
+      const product_tw = await this.prisma.inventory.findMany({
+        where: { product_fk: product?.id },
+        include: { transformation_workshop: true },
+      });
 
       const reservations = await this.prisma.stock_reservation.groupBy({
         by: ['transformation_workshop_fk'],
@@ -51,20 +50,29 @@ export class ShippingService {
         product_tw.map(async (p) => {
           const priceFrete = await this.meuEnvioShippingStrategy.calculatePrice(
             dto.destinationZipCode,
-            p.transformation_workshop?.cep ?? ''
+            p.transformation_workshop?.cep ?? '',
+            {
+              width: product?.width ?? 0,
+              height: product?.height ?? 0,
+              length: product?.length ?? 0,
+              weight: product?.weight ?? 0,
+            },
           );
           return {
             quantity: Math.max(
               0,
-              p.quantity - (reservationsMap.get(p.transformation_workshop_fk ?? 0) ?? 0),
+              p.quantity -
+                (reservationsMap.get(p.transformation_workshop_fk ?? 0) ?? 0),
             ),
             workshopId: p.transformation_workshop_fk,
-            price: priceFrete
+            price: priceFrete.cost,
           };
-        })
+        }),
       );
 
-      const ordenadoPorPreco = [...quantity_tw].sort((a, b) => a.price - b.price)
+      const ordenadoPorPreco = [...quantity_tw].sort(
+        (a, b) => a.price - b.price,
+      );
       const ordemItens = this.algothmsMoneyShipping(
         orderItems.quantity,
         ordenadoPorPreco,

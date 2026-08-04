@@ -45,18 +45,47 @@ export class TransformationWorkshopProductBffService {
         );
       }
 
-      const transformation_workshop_product_create =
-        await this.prisma.transformation_workshop_product.create({
-          data: {
-            product: {
-              connect: { id: addProductTransformationWorkshopDto.product_fk },
+      // A partir da migração para `inventory` (fonte de verdade do estoque), este
+      // registro deixa de carregar quantidade real — quantity nasce fixo em 0.
+      // `inventory` (estoque) e `production_capacity` (capacidade de produção,
+      // inativa até o admin declarar a taxa real) nascem juntos, no mesmo par.
+      const [transformation_workshop_product_create] =
+        await this.prisma.$transaction([
+          this.prisma.transformation_workshop_product.create({
+            data: {
+              product: {
+                connect: { id: addProductTransformationWorkshopDto.product_fk },
+              },
+              transformation_workshop: {
+                connect: { id: addProductTransformationWorkshopDto.tw_fk },
+              },
+              quantity: 0,
             },
-            transformation_workshop: {
-              connect: { id: addProductTransformationWorkshopDto.tw_fk },
+          }),
+          this.prisma.inventory.create({
+            data: {
+              transformation_workshop: {
+                connect: { id: addProductTransformationWorkshopDto.tw_fk },
+              },
+              product: {
+                connect: { id: addProductTransformationWorkshopDto.product_fk },
+              },
+              quantity: 0,
             },
-            quantity: addProductTransformationWorkshopDto.quantity,
-          },
-        });
+          }),
+          this.prisma.production_capacity.create({
+            data: {
+              transformation_workshop: {
+                connect: { id: addProductTransformationWorkshopDto.tw_fk },
+              },
+              product: {
+                connect: { id: addProductTransformationWorkshopDto.product_fk },
+              },
+              monthly_capacity: 0,
+              active: false,
+            },
+          }),
+        ]);
 
       return transformation_workshop_product_create;
     } catch (err) {
@@ -66,8 +95,12 @@ export class TransformationWorkshopProductBffService {
 
   async updateTransformationWorkshop(
     id: string,
+    // Mantido na assinatura para preservar o contrato do endpoint (rota/DTO
+    // documentados no Swagger); o valor deixou de ser usado, pois a atualização
+    // de quantidade por esta rota foi descontinuada (ver corpo do método).
     updateProductTransformationWorkshopDto: ProductTransformationWorkshopUpdateDto,
   ) {
+    void updateProductTransformationWorkshopDto;
     try {
       const transformationWorkshopUserFind =
         await this.prisma.transformation_workshop_product.findUnique({
@@ -83,17 +116,12 @@ export class TransformationWorkshopProductBffService {
         );
       }
 
-      const transformation_workshop_product_update =
-        await this.prisma.transformation_workshop_product.update({
-          where: {
-            id: +id,
-          },
-          data: {
-            quantity: updateProductTransformationWorkshopDto.quantity,
-          },
-        });
-
-      return transformation_workshop_product_update;
+      // Atualização de quantidade por esta rota foi descontinuada: a fonte de
+      // verdade do estoque passou a ser `inventory` (endpoints /inventory).
+      throw new HttpException(
+        'Atualização de quantidade por esta rota foi descontinuada; utilize os endpoints de /inventory',
+        HttpStatus.GONE,
+      );
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }

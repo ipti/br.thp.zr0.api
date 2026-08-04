@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ShippingStrategy } from './shipping.strategy';
 import axios from 'axios';
 
@@ -12,8 +12,47 @@ import {
   ShippingQuoteResponse,
 } from '../entities/shipping-result.entity';
 
+export interface ProductDimensions {
+  width: number;
+  height: number;
+  length: number;
+  weight: number;
+}
+
+// Menores valores aceitos pela API do Melhor Envio para uma cotação válida.
+const MIN_DIMENSION_CM = 1;
+const MIN_WEIGHT_KG = 0.1;
+
 @Injectable()
 export class MeuEnvioShippingStrategy implements ShippingStrategy {
+  private readonly logger = new Logger(MeuEnvioShippingStrategy.name);
+
+  private sanitizeDimensions(
+    dimensions: ProductDimensions,
+    productId?: number | string,
+  ): ProductDimensions {
+    const sanitized = {
+      width: dimensions.width > 0 ? dimensions.width : MIN_DIMENSION_CM,
+      height: dimensions.height > 0 ? dimensions.height : MIN_DIMENSION_CM,
+      length: dimensions.length > 0 ? dimensions.length : MIN_DIMENSION_CM,
+      weight: dimensions.weight > 0 ? dimensions.weight : MIN_WEIGHT_KG,
+    };
+
+    if (
+      sanitized.width !== dimensions.width ||
+      sanitized.height !== dimensions.height ||
+      sanitized.length !== dimensions.length ||
+      sanitized.weight !== dimensions.weight
+    ) {
+      this.logger.warn(
+        `Produto ${productId ?? '(desconhecido)'} com dimensões ausentes/zeradas ` +
+          `(${JSON.stringify(dimensions)}); usando fallback mínimo para cotação de frete.`,
+      );
+    }
+
+    return sanitized;
+  }
+
   async calculate(
     context: ShippingContext,
   ): Promise<ShippingCalculationResult> {
@@ -26,10 +65,7 @@ export class MeuEnvioShippingStrategy implements ShippingStrategy {
       },
       products: context.products.map((p) => ({
         id: p.id.toString(),
-        width: p.width,
-        height: p.height,
-        length: p.length,
-        weight: p.weight,
+        ...this.sanitizeDimensions(p, p.id),
         insurance_value: p.insuranceValue ?? 0,
         quantity: p.quantity,
       })),
@@ -63,19 +99,18 @@ export class MeuEnvioShippingStrategy implements ShippingStrategy {
   async calculatePrice(
     fromCep: string,
     toCep: string,
-    altura = 20,
-    largura = 20,
-    comprimento = 20,
-    peso = 1,
-  ) {
+    dimensions: ProductDimensions,
+  ): Promise<{ cost: number; deliveryTimeDays: number; service: string }> {
+    const { width, height, length, weight } =
+      this.sanitizeDimensions(dimensions);
     const payload = {
       from: { postal_code: fromCep },
       to: { postal_code: toCep },
       package: {
-        height: altura,
-        width: largura,
-        length: comprimento,
-        weight: peso,
+        height,
+        width,
+        length,
+        weight,
       },
       services: '1,2,3', // vazio para retornar todos os serviços disponíveis
     };
@@ -90,10 +125,20 @@ export class MeuEnvioShippingStrategy implements ShippingStrategy {
       },
     );
 
-    const preco = parseFloat(
-      response?.data?.find((item) => item.price)?.price ?? '0',
-    );
-    return preco;
+    const validOptions = (response?.data ?? [])
+      .filter((item) => item.error == null && item.price)
+      .map((item) => ({
+        cost: parseFloat(item.price),
+        deliveryTimeDays: item.delivery_time ?? 0,
+        service: item.name ?? 'Unknown',
+      }));
+
+    if (validOptions.length === 0) {
+      return { cost: 0, deliveryTimeDays: 0, service: 'Unknown' };
+    }
+
+    // Mesmo critério de "melhor opção" já usado em calculate(): menor custo.
+    return validOptions.reduce((a, b) => (a.cost < b.cost ? a : b));
   }
 
   parseShippingApiResponse(

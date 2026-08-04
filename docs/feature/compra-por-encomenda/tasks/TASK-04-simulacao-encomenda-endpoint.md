@@ -3,9 +3,11 @@
 ## Metadados
 
 - **Prioridade:** P0
-- **Status:** Não iniciada
+- **Status:** Concluída
 - **Dependências:** TASK-03 (serviço de fila/capacidade de produção)
 - **Bloqueia:** TASK-05 (Checkout do Pedido de Encomenda com lock de concorrência)
+
+> **Nota de execução:** o DTO original desta task e da história técnica (`{ productId, quantity }`) não incluía o destino do frete — uma omissão real, já que o custo/prazo de frete depende de origem **e** destino. Adicionado `destinationZipCode: string` (obrigatório) ao `SimulateProductionOrderDto`. `MeuEnvioShippingStrategy` foi incluída como provider direto de `ProductionOrderModule` (não importada de `ShippingModule`, que não a exporta) — mantém o módulo de encomenda isolado do de Pronta Entrega.
 
 > **Nota de escopo:** a versão anterior desta tarefa implementava um algoritmo de "duas ondas" (estoque + produção) dentro de um único endpoint `POST /shipping/simulate`. Isso foi descartado: o Pedido de Encomenda agora é um **fluxo isolado**, que nunca consulta `inventory`/estoque. Esta tarefa implementa **só** o algoritmo de produção (o que antes era chamado de "onda 2"), rodando sobre a quantidade total escolhida livremente pelo cliente — não sobre um "resíduo" de outro cálculo.
 

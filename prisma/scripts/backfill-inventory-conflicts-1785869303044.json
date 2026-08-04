@@ -1,0 +1,8 @@
+[
+  {
+    "transformation_workshop_fk": 1,
+    "product_fk": 1,
+    "existingQuantity": 4,
+    "backfillQuantity": 4
+  }
+]

@@ -7,19 +7,17 @@ export class ProductBffService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly productService: ProductsService,
-  ) { }
-
+  ) {}
 
   async OnlyQuantProducts(uid: string) {
     try {
       const product = await this.productService.findOneUid(uid);
 
-      const tw_product =
-        await this.prisma.transformation_workshop_product.findMany({
-          where: {
-            product_fk: product.id,
-          },
-        });
+      const tw_product = await this.prisma.inventory.findMany({
+        where: {
+          product_fk: product.id,
+        },
+      });
 
       const reserved = await this.prisma.stock_reservation.aggregate({
         _sum: { quantity: true },
@@ -29,13 +27,14 @@ export class ProductBffService {
         },
       });
 
-      const quantity = tw_product
-        .map((item) => item.quantity)
-        .reduce((prev, curr) => prev + curr, 0) - (reserved._sum.quantity ?? 0);
+      const quantity =
+        tw_product
+          .map((item) => item.quantity)
+          .reduce((prev, curr) => prev + curr, 0) -
+        (reserved._sum.quantity ?? 0);
 
       return {
-
-        quantity: quantity
+        quantity: quantity,
       };
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
@@ -46,12 +45,11 @@ export class ProductBffService {
     try {
       const product = await this.productService.findOneUid(uid);
 
-      const tw_product =
-        await this.prisma.transformation_workshop_product.findMany({
-          where: {
-            product_fk: product.id,
-          },
-        });
+      const tw_product = await this.prisma.inventory.findMany({
+        where: {
+          product_fk: product.id,
+        },
+      });
 
       const reserved = await this.prisma.stock_reservation.aggregate({
         _sum: { quantity: true },
@@ -61,9 +59,11 @@ export class ProductBffService {
         },
       });
 
-      const quantity = tw_product
-        .map((item) => item.quantity)
-        .reduce((prev, curr) => prev + curr, 0) - (reserved._sum.quantity ?? 0);
+      const quantity =
+        tw_product
+          .map((item) => item.quantity)
+          .reduce((prev, curr) => prev + curr, 0) -
+        (reserved._sum.quantity ?? 0);
 
       return {
         name: product.name,
@@ -86,12 +86,11 @@ export class ProductBffService {
     try {
       const product = await this.productService.findOne(+id);
 
-      const tw_product =
-        await this.prisma.transformation_workshop_product.findMany({
-          where: {
-            product_fk: product.id,
-          },
-        });
+      const tw_product = await this.prisma.inventory.findMany({
+        where: {
+          product_fk: product.id,
+        },
+      });
 
       const reserved = await this.prisma.stock_reservation.aggregate({
         _sum: { quantity: true },
@@ -101,13 +100,15 @@ export class ProductBffService {
         },
       });
 
-      const quantity = tw_product
-        .map((item) => item.quantity)
-        .reduce((prev, curr) => prev + curr, 0) - (reserved._sum.quantity ?? 0);
+      const quantity =
+        tw_product
+          .map((item) => item.quantity)
+          .reduce((prev, curr) => prev + curr, 0) -
+        (reserved._sum.quantity ?? 0);
 
       return {
         ...product,
-        quantity: quantity
+        quantity: quantity,
       };
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);

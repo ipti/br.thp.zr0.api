@@ -20,6 +20,8 @@ import { ShippingModule } from './shipping/shipping.module';
 import { CustomerModule } from './customer/customer.module';
 import { BillingAddressCustomerModule } from './billing_address_customer/billing_address_customer.module';
 import { ProductionModule } from './production/production.module';
+import { ProductionCapacityModule } from './production-capacity/production-capacity.module';
+import { ProductionOrderModule } from './production-order/production-order.module';
 import { CartModule } from './cart/cart.module';
 import { InventoryModule } from './inventory/inventory.module';
 import { AddressCustomerModule } from './address_customer/address_customer.module';
@@ -47,6 +49,8 @@ import { CouponModule } from './coupon/coupon.module';
     CustomerModule,
     BillingAddressCustomerModule,
     ProductionModule,
+    ProductionCapacityModule,
+    ProductionOrderModule,
     CartModule,
     InventoryModule,
     AddressCustomerModule,

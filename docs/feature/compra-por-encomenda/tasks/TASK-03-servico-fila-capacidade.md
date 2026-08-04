@@ -3,9 +3,11 @@
 ## Metadados
 
 - **Prioridade:** P0
-- **Status:** Não iniciada
+- **Status:** Concluída
 - **Dependências:** TASK-01
 - **Bloqueia:** TASK-04
+
+> **Nota de execução:** ao rodar `npm run test -- production-queue`, o Jest falhava com `Cannot find module 'src/...'` (mesmo problema pré-existente já notado na TASK-02, afetando as 12 suítes do projeto). Corrigi com um `moduleNameMapper` no `package.json` (`"^src/(.*)$": "<rootDir>/$1"`, já que o `rootDir` do Jest é `src` mas os imports usam `src/...` como se fosse a raiz do projeto) — fix mínimo e aditivo, sem tocar lógica de negócio. Isso desbloqueou a suíte nova desta task (8/8 testes passando) e revelou um segundo problema pré-existente e não relacionado nas 12 suítes antigas (stubs que não fornecem `PrismaService` mockado ao `Test.createTestingModule`) — já documentado como limitação conhecida, fora de escopo corrigir aqui.
 
 ## Objetivo
 

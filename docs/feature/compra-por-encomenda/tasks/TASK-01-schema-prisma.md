@@ -3,9 +3,11 @@
 ## Metadados
 
 - **Prioridade:** P0
-- **Status:** Não iniciada
+- **Status:** Concluída
 - **Dependências:** Nenhuma
 - **Bloqueia:** TASK-02 a TASK-06
+
+> **Nota de execução:** ao gerar a migration, `prisma migrate dev --create-only` detectou drift pré-existente no banco de dev, sem relação com esta feature — uma tabela `cartitem` (minúscula) divergindo do `cartItem` esperado pelo histórico de migrations (efeito de case-sensitivity do MySQL) e uma tabela órfã `dms_persistent_objects` (não pertencente a nenhuma migration do projeto, 0 linhas). Em vez de rodar `migrate reset` (destrutivo), a tabela órfã foi renomeada e depois removida (confirmada vazia), e a migration foi gerada via `prisma migrate diff` (comparando o banco real ao schema novo) e aplicada com `prisma db execute` + `prisma migrate resolve --applied`, preservando o histórico de migrations sem perda de dados. Migration aplicada: `20260804153813_add_production_capacity_and_encomenda`.
 
 ## Objetivo
 

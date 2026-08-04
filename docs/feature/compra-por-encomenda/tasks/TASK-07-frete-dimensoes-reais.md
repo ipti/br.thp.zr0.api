@@ -3,9 +3,19 @@
 ## Metadados
 
 - **Prioridade:** P1
-- **Status:** Não iniciada
+- **Status:** Concluída
 - **Dependências:** Nenhuma
 - **Bloqueia:** TASK-09
+
+## Nota de execução
+
+Adotada a opção (b) do passo 4: `calculatePrice` e `calculate` permanecem métodos separados (consolidá-los estava fora do escopo mínimo necessário e arriscaria latência/regressão sem necessidade real). `calculatePrice` passou a receber um parâmetro obrigatório `dimensions: ProductDimensions` (`{width, height, length, weight}`), removendo os defaults fixos de 20×20×20cm/1kg; os dois call-sites existentes (`shipping.service.ts:51` e `production-order.service.ts:71`, este último introduzido pela TASK-04) foram atualizados para passar as dimensões reais do produto já carregado no escopo. `calculatePrice` já retornava `{cost, deliveryTimeDays, service}` desde a TASK-04 — `delivery_time` já estava disponível, não foi necessário estender o retorno novamente.
+
+Adicionado `sanitizeDimensions()` (privado, em `MeuEnvioShippingStrategy`) aplicado tanto em `calculatePrice` quanto em `calculate`/payload `products[]`: qualquer dimensão `<= 0` (zerada ou ausente) é substituída por um fallback mínimo (1cm / 0.1kg) com `Logger.warn`, em vez de travar a cotação ou gerar preço 0 silenciosamente — mesma filosofia de "alertar mas não travar" já usada para `production.date_end null`.
+
+Testes novos: `meu-envio-shipping.strategy.spec.ts` (6 testes, mockando `axios.post`, cobrindo dimensões reais no payload de `calculatePrice`/`calculate`, fallback de dimensão zerada, seleção de menor custo, e ausência de opções válidas). `shipping.service.spec.ts` deixou de ser stub e ganhou 1 teste confirmando que `calculatePrice` é chamado com as dimensões reais do produto (não a caixa genérica).
+
+`insuranceValue`/`insurance_value` fixado em `0` permanece como débito técnico documentado, fora do escopo desta task (conforme já definido). A falha pré-existente em `shipping.controller.spec.ts` (erro de resolução de módulo, não relacionada a este trabalho) foi confirmada via `git stash` como já existente antes desta task — não corrigida aqui.
 
 ## Objetivo
 

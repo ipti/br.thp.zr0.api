@@ -7,7 +7,11 @@ import { EmailService } from '../utils/middleware/email.middleware';
 
 @Injectable()
 export class PaymentService {
-  constructor(private readonly stripeService: StripeService, private readonly prisma: PrismaService, private readonly emailService: EmailService,) { }
+  constructor(
+    private readonly stripeService: StripeService,
+    private readonly prisma: PrismaService,
+    private readonly emailService: EmailService,
+  ) {}
 
   async createPaymentIntent(
     amount: number,
@@ -23,56 +27,58 @@ export class PaymentService {
         : normalizedMethod === 'BANK_SLIP'
           ? ['boleto']
           : ['card'];
-    const payment = await stripe.paymentIntents.create({
-      amount,
-      currency,
-      payment_method_types: paymentMethodTypes,
-      payment_method_options: {
-        card: {
-          installments: {
-            enabled: true,
+    const payment = await stripe.paymentIntents.create(
+      {
+        amount,
+        currency,
+        payment_method_types: paymentMethodTypes,
+        payment_method_options: {
+          card: {
+            installments: {
+              enabled: true,
+            },
+          },
+          pix: {
+            expires_after_seconds: 3600,
+          },
+          boleto: {
+            expires_after_days: 3,
           },
         },
-        pix: {
-          expires_after_seconds: 3600,
-        },
-        boleto: {
-          expires_after_days: 3,
-        },
-      },
-    } as any,
-      //  { idempotencyKey: idOrder.toString() } 
+      } as any,
+      //  { idempotencyKey: idOrder.toString() }
     );
 
     const order = await this.prisma.order.findUnique({
       where: {
-        id: idOrder
+        id: idOrder,
       },
-
-    })
+    });
 
     if (order) {
-      await this.prisma.order.update({ where: { id: idOrder }, data: { payment_intent_id: payment?.id } })
+      await this.prisma.order.update({
+        where: { id: idOrder },
+        data: { payment_intent_id: payment?.id },
+      });
     }
 
-    return payment
+    return payment;
   }
 
   async refundPaymentIntent(amount: number, idOrder: number) {
-
     const order = await this.prisma.order.findUnique({
       where: {
-        id: idOrder
+        id: idOrder,
       },
       include: {
         user: {
-          select: {email: true, name: true}
+          select: { email: true, name: true },
         },
         order_delivery_address: {
           include: {
             city: true,
-            state: true
-          }
+            state: true,
+          },
         },
         order_services: {
           include: {
@@ -80,15 +86,15 @@ export class PaymentService {
               include: {
                 product: {
                   include: {
-                    product_image: true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    })
+                    product_image: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
 
     if (!order?.payment_intent_id) {
       throw new HttpException('Payment intent not found', HttpStatus.NOT_FOUND);
@@ -97,27 +103,26 @@ export class PaymentService {
     const stripe = this.stripeService.getStripeClient();
     const payment = await stripe.refunds.create({
       amount: Math.round(amount * 100),
-      payment_intent: order?.payment_intent_id
+      payment_intent: order?.payment_intent_id,
     });
 
     if (order) {
       const orders_services = await this.prisma.order_service.findMany({
         where: {
-          order_fk: order.id
-        }
-      })
+          order_fk: order.id,
+        },
+      });
 
-      for(const os of orders_services){
+      for (const os of orders_services) {
         await this.prisma.order_service.update({
           where: {
-            id: os.id
+            id: os.id,
           },
           data: {
-            status: 'CANCELLED'
-          }
-        })
+            status: 'CANCELLED',
+          },
+        });
       }
-
     }
 
     const products = order.order_services.flatMap((service) =>
@@ -127,25 +132,24 @@ export class PaymentService {
         quantity: i.quantity,
         price: i.total_price,
         imagem: i.product?.product_image[0]?.img_url ?? '',
-      }))
+      })),
     );
 
     await this.emailService.sendEmail(
-          order.user?.email ?? '',
-          'Reembolsar pedido',
-          'refundOrder.hbs',
-          {
-            name_client: order.user?.name,
-            id_order: order.uid,
-            total_amount: order.total_amount,
-            products,
-          },
-        );
-    return payment
+      order.user?.email ?? '',
+      'Reembolsar pedido',
+      'refundOrder.hbs',
+      {
+        name_client: order.user?.name,
+        id_order: order.uid,
+        total_amount: order.total_amount,
+        products,
+      },
+    );
+    return payment;
   }
 
   async handleWebhook(event) {
-
     try {
       switch (event.type) {
         case 'payment_intent.succeeded':
@@ -162,7 +166,10 @@ export class PaymentService {
 
         case 'charge.refund.updated':
           const refundIntent = event.data.object as Stripe.Refund;
-          this.updateOrderStatus(refundIntent.payment_intent?.toString() ?? '', 'REFUNDED');
+          this.updateOrderStatus(
+            refundIntent.payment_intent?.toString() ?? '',
+            'REFUNDED',
+          );
           console.warn('❌ Payment refund:', refundIntent.payment_intent);
           break;
 
@@ -172,23 +179,21 @@ export class PaymentService {
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
-
   }
 
   async updateOrderStatus(idPaymentIntent: string, status: string) {
-
     try {
       const order = await this.prisma.order.findUnique({
-        where: { payment_intent_id: idPaymentIntent }, 
+        where: { payment_intent_id: idPaymentIntent },
         include: {
           user: {
             select: {
               email: true,
-              name: true
-            }
+              name: true,
+            },
           },
-          order_delivery_address: { 
-            include: { city: true, state: true } 
+          order_delivery_address: {
+            include: { city: true, state: true },
           },
           order_services: {
             include: {
@@ -197,49 +202,63 @@ export class PaymentService {
                 include: {
                   product: {
                     include: {
-                      product_image: true
-                    }
-                  }
-                }
-              }
-            }
+                      product_image: true,
+                    },
+                  },
+                },
+              },
+            },
           },
-        }
-      })
+        },
+      });
 
       if (!order) {
         throw new HttpException('Pedido não encontrado', HttpStatus.NOT_FOUND);
       } else {
+        const workshopIds = order.order_services
+          .map((os) => os.transformation_workshop_fk)
+          .filter(Boolean) as number[];
 
-        const workshopIds = order.order_services.map(os => os.transformation_workshop_fk).filter(Boolean) as number[];
+        const workshopUsersManagers =
+          await this.prisma.transformation_workshop_user.findMany({
+            where: {
+              transformation_workshop_fk: { in: workshopIds },
+              users: { role: { in: ['SELLER', 'SELLER_MANAGER'] } },
+            },
+            select: {
+              users: {
+                select: { email: true },
+              },
+            },
+          });
 
-        const workshopUsersManagers = await this.prisma.transformation_workshop_user.findMany({
-          where: {
-            transformation_workshop_fk: { in: workshopIds },
-            users: { role: { in: ['SELLER', 'SELLER_MANAGER'] }, }
+        await this.prisma.order.update({
+          where: { id: order.id },
+          data: {
+            payment_status:
+              status === 'PAID'
+                ? 'PAID'
+                : status === 'FAILED'
+                  ? 'FAILED'
+                  : status === 'REFUNDED'
+                    ? 'REFUNDED'
+                    : order.payment_status,
           },
-          select: {
-            users: {
-              select: { email: true }
-            }
-          }
-        });
-
-        await this.prisma.order.update({ 
-          where: { id: order.id }, 
-          data: { 
-            payment_status: status === 'PAID' ? 'PAID' : status === 'FAILED' ? 'FAILED' : status === 'REFUNDED' ? 'REFUNDED' : order.payment_status,
-          } 
         });
 
         console.log('Status do pedido atualizado para:', status);
 
-        // Atualizar status dos order_services se o pagamento foi confirmado
+        // Atualizar status dos order_services se o pagamento foi confirmado.
+        // Pedidos de Encomenda (order.sale_type = 'ENCOMENDA') vão para
+        // IN_PRODUCTION em vez de CONFIRMED — o pedido inteiro é homogêneo,
+        // então basta ramificar por order.sale_type, não por order_service.
         if (status === 'PAID') {
+          const orderServiceStatus =
+            order.sale_type === 'ENCOMENDA' ? 'IN_PRODUCTION' : 'CONFIRMED';
           for (const orderService of order.order_services) {
             await this.prisma.order_service.update({
               where: { id: orderService.id },
-              data: { status: 'CONFIRMED' }
+              data: { status: orderServiceStatus },
             });
           }
         }
@@ -251,7 +270,7 @@ export class PaymentService {
             quantity: i.quantity,
             price: i.total_price,
             imagem: i.product.product_image[0]?.img_url ?? '',
-          }))
+          })),
         );
 
         if (status === 'PAID') {
@@ -294,23 +313,22 @@ export class PaymentService {
             );
           }
         }
-
       }
 
-      console.log('email enviado')
+      console.log('email enviado');
 
-      return { message: 'Pagamento realizado' }
+      return { message: 'Pagamento realizado' };
     } catch (err) {
       return new HttpException(err, HttpStatus.BAD_REQUEST);
-      // throw 
+      // throw
     }
   }
 
-
   async getPaymentIntent(idOrder: number) {
     try {
-
-      const order = await this.prisma.order.findUnique({ where: { id: idOrder } })
+      const order = await this.prisma.order.findUnique({
+        where: { id: idOrder },
+      });
 
       if (!order) {
         throw new HttpException('Pedido não encontrado', HttpStatus.NOT_FOUND);
@@ -320,20 +338,19 @@ export class PaymentService {
         const stripe = this.stripeService.getStripeClient();
 
         const paymentIntent = await stripe.paymentIntents.retrieve(
-          order.payment_intent_id
+          order.payment_intent_id,
         );
-        return paymentIntent
+        return paymentIntent;
       } else {
         return await this.createPaymentIntent(
           order?.total_amount ?? 0,
           'BRL',
           order?.id,
           order?.payment_method ?? undefined,
-        )
+        );
       }
-
     } catch (error) {
-      console.log(error)
+      console.log(error);
       return new HttpException(error, HttpStatus.BAD_REQUEST);
     }
   }

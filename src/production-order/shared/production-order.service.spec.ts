@@ -149,6 +149,28 @@ describe('ProductionOrderService', () => {
     expect(result.deadlinePlan).toBeUndefined();
   });
 
+  it('nunca consulta inventory/stock_reservation durante simulate() (isolamento do fluxo de Pronta Entrega)', async () => {
+    mockCandidates();
+
+    const strictPrisma = new Proxy<typeof prisma>(prisma, {
+      get(target, prop, receiver): unknown {
+        if (prop === 'inventory' || prop === 'stock_reservation') {
+          throw new Error(
+            `simulate() acessou prisma.${String(prop)} — a simulação de Encomenda nunca deve consultar estoque de Pronta Entrega`,
+          );
+        }
+        return Reflect.get(target, prop, receiver);
+      },
+    });
+    (service as unknown as { prisma: typeof prisma }).prisma = strictPrisma;
+
+    await service.simulate({
+      productId: PRODUCT.uid,
+      quantity: 30,
+      destinationZipCode: '99999000',
+    });
+  });
+
   it('nunca realiza escrita no banco durante simulate()', async () => {
     mockCandidates();
 

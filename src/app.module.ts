@@ -5,6 +5,7 @@ import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import { JwtMiddleware } from './utils/middleware/jwt.middleware';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { BFFModule } from './bff/bff.module';
@@ -28,10 +29,12 @@ import { AddressCustomerModule } from './address_customer/address_customer.modul
 import { PaymentModule } from './payment/payment.module';
 import { WishlistModule } from './wishlist/wishlist.module';
 import { CouponModule } from './coupon/coupon.module';
+import { SchedulerModule } from './scheduler/scheduler.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ cache: true }),
+    ScheduleModule.forRoot(),
     PrometheusModule.register(),
     UsersModule,
     AuthModule,
@@ -57,6 +60,7 @@ import { CouponModule } from './coupon/coupon.module';
     PaymentModule,
     WishlistModule,
     CouponModule,
+    SchedulerModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -33,4 +33,10 @@ export class ProductionOrderController {
   async create(@Body() createProductionOrderDto: CreateProductionOrderDto) {
     return this.productionOrderService.create(createProductionOrderDto);
   }
+
+  @Post('release-expired')
+  @ApiOkResponse()
+  async releaseExpired() {
+    return this.productionOrderService.releaseExpiredProductionReservations();
+  }
 }

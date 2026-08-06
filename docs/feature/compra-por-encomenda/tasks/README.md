@@ -18,8 +18,8 @@
 | TASK-05 | Checkout do Pedido de Encomenda com lock de concorrência | P0 | TASK-04 (**Concluída**) |
 | TASK-06 | Criação do Pedido de Encomenda | P0 | TASK-05 (**Concluída**) |
 | TASK-07 | Frete com dimensões reais do produto | P1 | Nenhuma (**Concluída**) |
-| TASK-08 | Cron de limpeza de reservas expiradas | P1 | TASK-02, TASK-05 |
-| TASK-09 | Testes e validação end-to-end dos dois fluxos | P0 | TASK-01 a TASK-08 |
+| TASK-08 | Cron de limpeza de reservas expiradas | P1 | TASK-02, TASK-05 (**Concluída**) |
+| TASK-09 | Testes e validação end-to-end dos dois fluxos | P0 | TASK-01 a TASK-08 (**Concluída** — e2e com banco dedicado adiado, ver nota) |
 
 ## Fluxo de execução
 

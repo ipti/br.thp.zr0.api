@@ -3,9 +3,30 @@
 ## Metadados
 
 - **Prioridade:** P0
-- **Status:** Não iniciada
+- **Status:** Concluída (com um item explicitamente adiado — ver Nota de execução)
 - **Dependências:** TASK-01 a TASK-08
 - **Bloqueia:** Nenhuma
+
+## Nota de execução
+
+**Infra de teste (passo 1):** a suíte `test:e2e` (`test/jest-e2e.json`) estava completamente quebrada antes desta task — `Cannot find module 'src/auth/auth.module'` — pelo mesmo motivo já corrigido em `package.json` para os testes unitários (TASK-06): `rootDir` do Jest não resolve imports `src/...` sem um `moduleNameMapper`. Corrigido adicionando `"moduleNameMapper": {"^src/(.*)$": "<rootDir>/../src/$1"}` a `test/jest-e2e.json`. Confirmado funcional: `npx jest --config ./test/jest-e2e.json` sobe o `AppModule` real (conecta no MySQL configurado em `.env`) e passa em ~18s.
+
+**Fixture do cenário da escola / novos specs e2e (passos 2, 8, 9, 10) — adiado, não implementado nesta task.** O único banco alcançável neste ambiente é o MySQL de desenvolvimento apontado por `.env` (`DATABASE_URL`), compartilhado com o time — não existe um banco de teste dedicado nem `.env.test` (exatamente o risco já antecipado na seção "Riscos" deste documento: *"Infraestrutura de teste inexistente hoje... esta tarefa parte quase do zero"*). Popular esse banco com a fixture da escola e rodar specs e2e que criam pedidos reais nele afetaria dados compartilhados sem coordenação prévia — por isso não foi feito. Escrever `test/pronta-entrega.e2e-spec.ts`, `test/encomenda-escola.e2e-spec.ts` e o seed `prisma/seed/seed-encomenda-escola.ts` fica como trabalho futuro, condicionado a decidir/provisionar um banco de teste isolado.
+
+**O que foi entregue em substituição**, cobrindo o mesmo conjunto de critérios de aceite por meio de testes unitários/contrato (sem depender de app/DB reais):
+
+- `src/checkout/checkout.service.spec.ts` e `checkout.controller.spec.ts` — eram stubs quebrados (falha de DI, pré-existente); reescritos com cobertura real: lock `FOR UPDATE` antes da leitura (ordem de chamadas), rejeição por estoque insuficiente sem fallback, reserva concorrente considerando outras reservas ativas, `release-expired` exige `JwtAuthGuard`.
+- `src/orders/orders.service.spec.ts` — era stub quebrado; reescrito cobrindo agrupamento só por `workshopId` (nunca `workshop:saleType`), múltiplos itens do mesmo workshop em 1 único `order_service`, rejeição por estoque insuficiente sem fallback para produção, débito em `inventory`, e confirmação de que campos de encomenda (`simulationMode`) enviados por engano nunca chegam ao `order.create`.
+- `src/production-capacity/shared/production-capacity.service.spec.ts` — novo (gap da TASK-03, módulo não tinha nenhum teste).
+- `src/production-order/shared/production-order.service.spec.ts` — adicionado teste explícito (`Proxy` que lança erro se `prisma.inventory`/`prisma.stock_reservation` forem acessados) provando que `simulate()` nunca consulta estoque de Pronta Entrega.
+- `src/fluxos-nao-se-misturam.isolation.spec.ts` (novo) — substitui o e2e de isolamento por um teste unitário equivalente: `ValidationPipe` real (`whitelist:true`) descarta campos de encomenda enviados a `CreateOrderDto`; `CreateProductionOrderDto` não tem nenhum campo de estoque; checagem estática de que `ProductionOrderModule` nunca importa `CheckoutModule`/`OrdersModule`/`InventoryModule` (e vice-versa) e que os services de cada fluxo nunca referenciam as tabelas do outro.
+- `production.date_end = null` (registro legado) e o cenário motivador (30 e 50 unidades, OT A 35/mês, OT B 15/mês, modo custo vs. prazo) já estavam cobertos desde a TASK-03/04 em `production-queue.service.spec.ts`/`production-order.service.spec.ts`.
+- Dimensões reais de frete: já coberto pela TASK-07 (`meu-envio-shipping.strategy.spec.ts`).
+- Cron de limpeza: já coberto pela TASK-08 (`reservation-cleanup.scheduler.spec.ts`).
+
+**Resultado da suíte completa** (`npm run build`, `npm run test`): build limpo; `81` testes rodados, `74` passando, `7` falhando — todas as 7 falhas em suítes **não tocadas por nenhuma task desta feature** (`category.controller/service.spec.ts`, `transformation_workshop.controller/service.spec.ts`, `payment.controller.spec.ts`, `orders.controller.spec.ts`, `shipping.controller.spec.ts`), todas com o mesmo padrão pré-existente de módulo de teste sem providers mockados (`Nest can't resolve dependencies...`), confirmado via `git diff --stat` que nenhum desses arquivos foi alterado por esta feature. Nenhuma falha nova atribuível à Compra por Encomenda.
+
+**Roteiro de verificação manual (e-mails, tela de pedidos da OT, cenário completo com login real)** permanece não executado nesta task, pelo mesmo motivo do banco de teste: exigiria popular/consultar o banco compartilhado. Fica registrado como pendência para quando houver um ambiente de teste dedicado (TASK futura, fora desta feature).
 
 > **Nota de escopo:** a versão anterior desta tarefa validava um único fluxo combinado (`POST /shipping/simulate` → `POST /checkout/reserve` → `POST /orders`) que misturava pronta entrega e encomenda no mesmo pedido. Isso foi descartado: agora existem **dois fluxos completamente independentes** a validar separadamente — Pronta Entrega (inalterado estruturalmente, só migrado para `inventory`) e Encomenda (`POST /production-order/simulate` → `/reserve` → `POST /production-order`, novo módulo). Um dos critérios centrais desta tarefa passa a ser justamente confirmar que **os dois fluxos nunca se misturam**.
 

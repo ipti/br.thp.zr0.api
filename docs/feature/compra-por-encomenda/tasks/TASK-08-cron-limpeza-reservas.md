@@ -3,9 +3,21 @@
 ## Metadados
 
 - **Prioridade:** P1
-- **Status:** Não iniciada
+- **Status:** Concluída
 - **Dependências:** TASK-02 (lock/limpeza de `stock_reservation`), TASK-05 (limpeza de `production_reservation`)
 - **Bloqueia:** TASK-09
+
+## Nota de execução
+
+Implementado conforme especificado. `@nestjs/schedule` instalado e `ScheduleModule.forRoot()` registrado em `src/app.module.ts`. Novo `SchedulerModule` (`src/scheduler/`) importa `CheckoutModule`/`ProductionOrderModule` (`CheckoutModule` passou a exportar `CheckoutService`, que antes era só provider interno) e registra `ReservationCleanupScheduler`, decorado com `@Cron(process.env.RESERVATION_CLEANUP_CRON ?? CronExpression.EVERY_5_MINUTES)`.
+
+`handleCron()` usa uma flag `isRunning` em memória para ignorar execuções sobrepostas, e chama as duas limpezas dentro de métodos privados com `try/catch` independente cada um (retornando `0` e logando erro em caso de falha) — depois combinados via `Promise.all`, garantindo que a falha de uma não impede a outra nem derruba o ciclo. `isRunning` é liberado em `finally`, inclusive quando as duas falham. Duração e contagem por tabela são logadas ao final de cada ciclo.
+
+`POST /checkout/release-expired` passou a exigir `JwtAuthGuard` (só esse endpoint — `POST /checkout/reserve` permanece público, fora do escopo desta task). Foi adicionado `POST /production-order/release-expired`, já protegido pelo guard de classe existente no controller.
+
+`RESERVATION_CLEANUP_CRON=*/5 * * * *` adicionado ao `.env.example`.
+
+Testes novos: `reservation-cleanup.scheduler.spec.ts` (6 testes: ciclo normal chamando as duas limpezas, segunda execução ignorada durante a primeira, nova execução permitida após término, falha em cada limpeza isoladamente não impede a outra, guarda liberada mesmo com as duas falhando). Suíte completa de `checkout`/`production-order`/`scheduler` rodada — as únicas falhas encontradas (`checkout.controller.spec.ts`, `checkout.service.spec.ts`) são um problema pré-existente de DI em testes (módulos de teste sem providers mockados), confirmado via `git stash` como já presente antes desta task; não corrigido aqui por estar fora do escopo.
 
 > **Nota de escopo:** como os dois fluxos agora vivem em módulos independentes (`checkout` para Pronta Entrega, `production-order` para Encomenda), este cron passa a orquestrar **duas chamadas separadas** — uma por módulo — em vez de uma única função estendida. Isso reforça, mais uma vez, o isolamento entre os dois fluxos.
 

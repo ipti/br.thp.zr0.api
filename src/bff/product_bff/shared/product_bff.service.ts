@@ -49,6 +49,9 @@ export class ProductBffService {
         where: {
           product_fk: product.id,
         },
+        include: {
+          transformation_workshop: { include: { city: true, state: true } },
+        },
       });
 
       const reserved = await this.prisma.stock_reservation.aggregate({
@@ -65,6 +68,29 @@ export class ProductBffService {
           .reduce((prev, curr) => prev + curr, 0) -
         (reserved._sum.quantity ?? 0);
 
+      const productionCapacities = await this.prisma.production_capacity.findMany({
+        where: { product_fk: product.id, active: true },
+        include: {
+          transformation_workshop: { include: { city: true, state: true } },
+        },
+      });
+
+      const monthlyCapacity = productionCapacities.reduce(
+        (sum, capacity) => sum + capacity.monthly_capacity,
+        0,
+      );
+      const availableForOrder = monthlyCapacity > 0;
+
+      const workshop =
+        tw_product.find((item) => item.quantity > 0)?.transformation_workshop ??
+        productionCapacities[0]?.transformation_workshop;
+
+      const location = workshop
+        ? [workshop.city?.name, workshop.state?.acronym]
+            .filter(Boolean)
+            .join(' - ')
+        : null;
+
       return {
         name: product.name,
         uid: product.uid,
@@ -76,6 +102,9 @@ export class ProductBffService {
         averageRating: (product as any).averageRating ?? 0,
         reviewCount: (product as any).reviewCount ?? 0,
         product_review: (product as any).product_review ?? [],
+        location,
+        availableForOrder,
+        monthlyCapacity,
       };
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);

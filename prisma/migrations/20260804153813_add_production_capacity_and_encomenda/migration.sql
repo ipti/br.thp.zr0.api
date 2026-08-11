@@ -1,12 +1,3 @@
--- DropForeignKey
-ALTER TABLE `cartitem` DROP FOREIGN KEY `cartItem_cart_fk_fkey`;
-
--- DropForeignKey
-ALTER TABLE `cartitem` DROP FOREIGN KEY `cartItem_product_fk_fkey`;
-
--- DropForeignKey
-ALTER TABLE `cartitem` DROP FOREIGN KEY `cartItem_variant_fk_fkey`;
-
 -- AlterTable
 ALTER TABLE `order` ADD COLUMN `sale_type` ENUM('PRONTA_ENTREGA', 'ENCOMENDA') NOT NULL DEFAULT 'PRONTA_ENTREGA',
     ADD COLUMN `simulation_mode` ENUM('COST', 'DEADLINE') NULL;
@@ -18,9 +9,6 @@ ALTER TABLE `order_service` ADD COLUMN `estimated_delivery_at` DATETIME(3) NULL,
 -- AlterTable
 ALTER TABLE `production` ADD COLUMN `order_item_fk` INTEGER NULL,
     ADD COLUMN `production_status` ENUM('QUEUED', 'IN_PROGRESS', 'DONE', 'CANCELLED') NULL;
-
--- DropTable
-DROP TABLE `_unused_dms_persistent_objects`;
 
 -- DropTable
 DROP TABLE `cartitem`;

@@ -1,72 +1,73 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
-    IsNotEmpty,
-    IsNumber,
-    IsOptional,
-    IsString,
-    Matches,
-    MaxLength,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Matches,
+  MaxLength,
 } from 'class-validator';
 
 export class CreateAddressCustomerDto {
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(150)
+  @ApiProperty()
+  name: string;
 
+  @IsOptional()
+  @IsString()
+  @MaxLength(191)
+  @ApiProperty()
+  phone: string;
 
-    @IsNotEmpty()
-    @IsString()
-    @MaxLength(150)
-    @ApiProperty()
-    name: string;
+  @IsOptional()
+  @IsString()
+  @Transform(({ value }) =>
+    typeof value === 'string' ? value.replace(/\D/g, '') : value,
+  )
+  @Matches(/^\d{8}$/, { message: 'CEP deve conter 8 dígitos numéricos' })
+  @MaxLength(191)
+  @ApiProperty()
+  cep: string;
 
-    @IsOptional()
-    @IsString()
-    @MaxLength(191)
-    @ApiProperty()
-    phone: string;
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(191)
+  @ApiProperty()
+  address: string;
 
-    @IsOptional()
-    @IsString()
-    @Matches(/^\d{8}$/, { message: 'CEP deve conter 8 dígitos numéricos' })
-    @MaxLength(191)
-    @ApiProperty()
-    cep: string;
+  @IsNotEmpty()
+  @IsString()
+  @MaxLength(100)
+  @ApiProperty()
+  number: string;
 
-    @IsNotEmpty()
-    @IsString()
-    @MaxLength(191)
-    @ApiProperty()
-    address: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @ApiProperty()
+  complement: string;
 
-    @IsNotEmpty()
-    @IsString()
-    @MaxLength(100)
-    @ApiProperty()
-    number: string;
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  @ApiProperty()
+  neighborhood: string;
 
-    @IsOptional()
-    @IsString()
-    @MaxLength(100)
-    @ApiProperty()
-    complement: string;
+  @IsOptional()
+  @IsNumber()
+  @ApiProperty()
+  stateId: number;
 
-    @IsOptional()
-    @IsString()
-    @MaxLength(100)
-    @ApiProperty()
-    neighborhood: string;
+  @IsOptional()
+  @IsNumber()
+  @ApiProperty()
+  cityId: number;
 
-    @IsOptional()
-    @IsNumber()
-    @ApiProperty()
-    stateId: number;
-
-    @IsOptional()
-    @IsNumber()
-    @ApiProperty()
-    cityId: number;
-
-    @IsNotEmpty()
-    @IsNumber()
-    @ApiProperty()
-    customerId: number;
-
+  @IsNotEmpty()
+  @IsNumber()
+  @ApiProperty()
+  customerId: number;
 }

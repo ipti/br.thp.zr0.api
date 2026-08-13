@@ -92,6 +92,7 @@ export class ProductBffService {
         : null;
 
       return {
+        id: product.id,
         name: product.name,
         uid: product.uid,
         description: product.description,

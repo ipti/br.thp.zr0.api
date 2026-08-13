@@ -225,7 +225,7 @@ export class TransformationWorkshopBffService {
           id: id,
         },
         select: {
-          transformation_workshop_product: {
+          inventory: {
             include: {
               product: {
                 include: {

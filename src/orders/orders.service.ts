@@ -289,12 +289,16 @@ export class OrdersService {
           0,
         );
 
-        await this.paymentService.createPaymentIntent(
-          Math.round(fullOrder.total_amount * 100),
-          'BRL',
-          order.id,
-          fullOrder.payment_method ?? undefined,
-        );
+        try {
+          await this.paymentService.createPaymentIntentForOrder(order.id);
+        } catch (error) {
+          // O pedido já foi confirmado no banco. A tela de pagamento tentará
+          // criar/recuperar a intenção novamente com a mesma chave idempotente.
+          console.error(
+            `Não foi possível preparar o pagamento do pedido ${order.id}`,
+            error,
+          );
+        }
 
         // Preparar produtos para email
         const products = fullOrder.order_services.flatMap((service: any) =>
@@ -307,32 +311,11 @@ export class OrdersService {
           })),
         );
 
-        await this.emailService.sendEmail(
-          user?.email ?? '',
-          'Pedido realizado',
-          'sendOrder.hbs',
-          {
-            name_client: user?.name,
-            id_order: fullOrder.uid,
-            total_amount: fullOrder.total_amount,
-            payment_method: fullOrder.payment_method,
-            address: fullOrder.order_delivery_address?.address,
-            number: fullOrder.order_delivery_address?.number,
-            neighborhood: fullOrder.order_delivery_address?.neighborhood,
-            cep: fullOrder.order_delivery_address?.cep,
-            state: fullOrder.order_delivery_address?.state?.name,
-            city: fullOrder.order_delivery_address?.city?.name,
-            products,
-          },
-        );
-
-        console.log('workshopUsersManagers', workshopUsersManagers);
-
-        for (const manager of workshopUsersManagers) {
+        try {
           await this.emailService.sendEmail(
-            manager?.users.email ?? '',
+            user?.email ?? '',
             'Pedido realizado',
-            'sendOrderManager.hbs',
+            'sendOrder.hbs',
             {
               name_client: user?.name,
               id_order: fullOrder.uid,
@@ -347,6 +330,38 @@ export class OrdersService {
               products,
             },
           );
+        } catch (error) {
+          console.error(`Falha ao enviar e-mail do pedido ${order.id}`, error);
+        }
+
+        console.log('workshopUsersManagers', workshopUsersManagers);
+
+        for (const manager of workshopUsersManagers) {
+          try {
+            await this.emailService.sendEmail(
+              manager?.users.email ?? '',
+              'Pedido realizado',
+              'sendOrderManager.hbs',
+              {
+                name_client: user?.name,
+                id_order: fullOrder.uid,
+                total_amount: fullOrder.total_amount,
+                payment_method: fullOrder.payment_method,
+                address: fullOrder.order_delivery_address?.address,
+                number: fullOrder.order_delivery_address?.number,
+                neighborhood: fullOrder.order_delivery_address?.neighborhood,
+                cep: fullOrder.order_delivery_address?.cep,
+                state: fullOrder.order_delivery_address?.state?.name,
+                city: fullOrder.order_delivery_address?.city?.name,
+                products,
+              },
+            );
+          } catch (error) {
+            console.error(
+              `Falha ao notificar oficina sobre o pedido ${order.id}`,
+              error,
+            );
+          }
         }
       }
     }
@@ -409,11 +424,25 @@ export class OrdersService {
     };
   }
 
-  async findOne(id: number) {
+  async findOne(id: number, requesterId?: number, requesterRole?: string) {
     const order = await this.prisma.order.findUnique({
-      where: { id },
+      where: {
+        id,
+        ...(requesterRole === 'ADMIN' ? {} : { user_fk: requesterId }),
+      },
       include: {
-        user: true,
+        user: {
+          select: {
+            id: true,
+            email: true,
+            name: true,
+            role: true,
+            active: true,
+            verify_email: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
         order_services: {
           include: {
             order_item: {

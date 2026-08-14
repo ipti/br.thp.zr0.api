@@ -237,6 +237,7 @@ export class ProductsService {
       where: {
         product_fk: product.id,
         order_service: {
+          status: 'COMPLETED',
           order: {
             user_fk: userId,
             payment_status: 'PAID',
@@ -248,7 +249,7 @@ export class ProductsService {
 
     if (!hasBought) {
       throw new HttpException(
-        'Apenas clientes que compraram o produto podem avaliar',
+        'A avaliação fica disponível em Minhas compras após o recebimento do produto',
         HttpStatus.FORBIDDEN,
       );
     }
@@ -262,13 +263,13 @@ export class ProductsService {
       },
       update: {
         rating,
-        comment,
+        comment: comment?.trim() || null,
       },
       create: {
         product: { connect: { id: product.id } },
         user: { connect: { id: userId } },
         rating,
-        comment,
+        comment: comment?.trim() || null,
       },
       include: {
         user: {

@@ -26,6 +26,7 @@ import { Request } from 'express';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { ProductResponse } from './doc/product.response';
 import { CreateProductDto } from './dto/create-product.dto';
+import { CreateProductReviewDto } from './dto/create-product-review.dto';
 import { QueryProductDto } from './dto/query-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductsService } from './shared/product.service';
@@ -76,12 +77,12 @@ export class ProductController {
   async createReview(
     @Req() req: any,
     @Param('uid') uid: string,
-    @Body() body: { rating: number; comment?: string },
+    @Body() body: CreateProductReviewDto,
   ) {
     return this.productsService.createReview(
       uid,
       req.user.id,
-      Number(body.rating),
+      body.rating,
       body.comment,
     );
   }

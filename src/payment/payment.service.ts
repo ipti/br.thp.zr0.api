@@ -1,5 +1,13 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PaymentMethod } from '@prisma/client';
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { PaymentMethod, PaymentStatus } from '@prisma/client';
 import { StripeService } from '../stripe/stripe.service';
 import { PrismaService } from '../prisma/prisma.service';
 import Stripe from 'stripe';
@@ -13,14 +21,48 @@ export class PaymentService {
     private readonly emailService: EmailService,
   ) {}
 
-  async createPaymentIntent(
-    amount: number,
-    currency: string,
-    idOrder: number,
-    paymentMethod?: PaymentMethod,
+  private assertCanAccessOrder(
+    order: { user_fk: number },
+    requesterId?: number,
+    requesterRole?: string,
   ) {
+    if (
+      requesterId !== undefined &&
+      order.user_fk !== requesterId &&
+      requesterRole !== 'ADMIN'
+    ) {
+      throw new ForbiddenException('Você não pode acessar o pagamento deste pedido');
+    }
+  }
+
+  async createPaymentIntentForOrder(idOrder: number) {
+    const order = await this.prisma.order.findUnique({
+      where: { id: idOrder },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Pedido não encontrado');
+    }
+
+    if (order.payment_status === 'PAID') {
+      throw new ConflictException('Este pedido já foi pago');
+    }
+
+    if (order.payment_status === 'REFUNDED') {
+      throw new ConflictException('Este pedido já foi reembolsado');
+    }
+
     const stripe = this.stripeService.getStripeClient();
-    const normalizedMethod = paymentMethod ?? 'PIX';
+    if (order.payment_intent_id) {
+      return stripe.paymentIntents.retrieve(order.payment_intent_id);
+    }
+
+    const amountInCents = Math.round(order.total_amount * 100);
+    if (!Number.isSafeInteger(amountInCents) || amountInCents <= 0) {
+      throw new BadRequestException('O pedido possui um valor inválido para pagamento');
+    }
+
+    const normalizedMethod: PaymentMethod = order.payment_method ?? 'PIX';
     const paymentMethodTypes: string[] =
       normalizedMethod === 'PIX'
         ? ['pix']
@@ -29,43 +71,32 @@ export class PaymentService {
           : ['card'];
     const payment = await stripe.paymentIntents.create(
       {
-        amount,
-        currency,
+        amount: amountInCents,
+        currency: 'brl',
         payment_method_types: paymentMethodTypes,
-        payment_method_options: {
-          card: {
-            installments: {
-              enabled: true,
-            },
-          },
-          pix: {
-            expires_after_seconds: 3600,
-          },
-          boleto: {
-            expires_after_days: 3,
-          },
+        payment_method_options:
+          normalizedMethod === 'PIX'
+            ? { pix: { expires_after_seconds: 3600 } }
+            : normalizedMethod === 'BANK_SLIP'
+              ? { boleto: { expires_after_days: 3 } }
+              : { card: { installments: { enabled: true } } },
+        metadata: {
+          order_id: String(order.id),
+          order_uid: order.uid,
         },
       } as any,
-      //  { idempotencyKey: idOrder.toString() }
+      { idempotencyKey: `order-${order.id}-payment-v1` },
     );
 
-    const order = await this.prisma.order.findUnique({
-      where: {
-        id: idOrder,
-      },
+    await this.prisma.order.update({
+      where: { id: idOrder },
+      data: { payment_intent_id: payment.id },
     });
-
-    if (order) {
-      await this.prisma.order.update({
-        where: { id: idOrder },
-        data: { payment_intent_id: payment?.id },
-      });
-    }
 
     return payment;
   }
 
-  async refundPaymentIntent(amount: number, idOrder: number) {
+  async refundPaymentIntent(idOrder: number) {
     const order = await this.prisma.order.findUnique({
       where: {
         id: idOrder,
@@ -100,10 +131,19 @@ export class PaymentService {
       throw new HttpException('Payment intent not found', HttpStatus.NOT_FOUND);
     }
 
+    if (order.payment_status !== 'PAID') {
+      throw new ConflictException('Somente pedidos pagos podem ser reembolsados');
+    }
+
     const stripe = this.stripeService.getStripeClient();
-    const payment = await stripe.refunds.create({
-      amount: Math.round(amount * 100),
-      payment_intent: order?.payment_intent_id,
+    const payment = await stripe.refunds.create(
+      { payment_intent: order.payment_intent_id },
+      { idempotencyKey: `order-${order.id}-full-refund-v1` },
+    );
+
+    await this.prisma.order.update({
+      where: { id: order.id },
+      data: { payment_status: 'REFUNDED' },
     });
 
     if (order) {
@@ -149,24 +189,24 @@ export class PaymentService {
     return payment;
   }
 
-  async handleWebhook(event) {
+  async handleWebhook(event: Stripe.Event) {
     try {
       switch (event.type) {
         case 'payment_intent.succeeded':
           const paymentIntent = event.data.object as Stripe.PaymentIntent;
           console.log('✅ PaymentIntent succeeded:', paymentIntent.id);
-          this.updateOrderStatus(paymentIntent.id, 'PAID');
+          await this.updateOrderStatus(paymentIntent.id, 'PAID');
           break;
 
         case 'payment_intent.payment_failed':
           const failedIntent = event.data.object as Stripe.PaymentIntent;
-          this.updateOrderStatus(failedIntent.id, 'FAILED');
+          await this.updateOrderStatus(failedIntent.id, 'FAILED');
           console.warn('❌ Payment failed:', failedIntent.id);
           break;
 
         case 'charge.refund.updated':
           const refundIntent = event.data.object as Stripe.Refund;
-          this.updateOrderStatus(
+          await this.updateOrderStatus(
             refundIntent.payment_intent?.toString() ?? '',
             'REFUNDED',
           );
@@ -177,11 +217,11 @@ export class PaymentService {
           console.log(`⚠️ Unhandled event type: ${event.type}`);
       }
     } catch (err) {
-      throw new HttpException(err, HttpStatus.BAD_REQUEST);
+      throw err;
     }
   }
 
-  async updateOrderStatus(idPaymentIntent: string, status: string) {
+  async updateOrderStatus(idPaymentIntent: string, status: PaymentStatus) {
     try {
       const order = await this.prisma.order.findUnique({
         where: { payment_intent_id: idPaymentIntent },
@@ -215,6 +255,11 @@ export class PaymentService {
       if (!order) {
         throw new HttpException('Pedido não encontrado', HttpStatus.NOT_FOUND);
       } else {
+        const isDuplicateEvent = order.payment_status === status;
+        if (isDuplicateEvent && status !== 'PAID') {
+          return { message: 'Evento de pagamento já processado' };
+        }
+
         const workshopIds = order.order_services
           .map((os) => os.transformation_workshop_fk)
           .filter(Boolean) as number[];
@@ -232,19 +277,12 @@ export class PaymentService {
             },
           });
 
-        await this.prisma.order.update({
-          where: { id: order.id },
-          data: {
-            payment_status:
-              status === 'PAID'
-                ? 'PAID'
-                : status === 'FAILED'
-                  ? 'FAILED'
-                  : status === 'REFUNDED'
-                    ? 'REFUNDED'
-                    : order.payment_status,
-          },
-        });
+        if (!isDuplicateEvent) {
+          await this.prisma.order.update({
+            where: { id: order.id },
+            data: { payment_status: status },
+          });
+        }
 
         console.log('Status do pedido atualizado para:', status);
 
@@ -255,11 +293,18 @@ export class PaymentService {
         if (status === 'PAID') {
           const orderServiceStatus =
             order.sale_type === 'ENCOMENDA' ? 'IN_PRODUCTION' : 'CONFIRMED';
+          const servicesWereAlreadyUpdated = order.order_services.every(
+            (orderService) => orderService.status === orderServiceStatus,
+          );
           for (const orderService of order.order_services) {
             await this.prisma.order_service.update({
               where: { id: orderService.id },
               data: { status: orderServiceStatus },
             });
+          }
+
+          if (isDuplicateEvent && servicesWereAlreadyUpdated) {
+            return { message: 'Evento de pagamento já processado' };
           }
         }
 
@@ -319,39 +364,28 @@ export class PaymentService {
 
       return { message: 'Pagamento realizado' };
     } catch (err) {
-      return new HttpException(err, HttpStatus.BAD_REQUEST);
-      // throw
+      throw err;
     }
   }
 
-  async getPaymentIntent(idOrder: number) {
-    try {
-      const order = await this.prisma.order.findUnique({
-        where: { id: idOrder },
-      });
-
-      if (!order) {
-        throw new HttpException('Pedido não encontrado', HttpStatus.NOT_FOUND);
-      }
-
-      if (order?.payment_intent_id) {
-        const stripe = this.stripeService.getStripeClient();
-
-        const paymentIntent = await stripe.paymentIntents.retrieve(
-          order.payment_intent_id,
-        );
-        return paymentIntent;
-      } else {
-        return await this.createPaymentIntent(
-          order?.total_amount ?? 0,
-          'BRL',
-          order?.id,
-          order?.payment_method ?? undefined,
-        );
-      }
-    } catch (error) {
-      console.log(error);
-      return new HttpException(error, HttpStatus.BAD_REQUEST);
+  async getPaymentIntent(
+    idOrder: number,
+    requesterId?: number,
+    requesterRole?: string,
+  ) {
+    if (!Number.isInteger(idOrder) || idOrder <= 0) {
+      throw new BadRequestException('Pedido inválido');
     }
+
+    const order = await this.prisma.order.findUnique({
+      where: { id: idOrder },
+    });
+
+    if (!order) {
+      throw new NotFoundException('Pedido não encontrado');
+    }
+
+    this.assertCanAccessOrder(order, requesterId, requesterRole);
+    return this.createPaymentIntentForOrder(order.id);
   }
 }

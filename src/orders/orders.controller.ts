@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { OrdersService } from './orders.service';
@@ -15,6 +16,7 @@ import { QueryOrderDto } from './dto/query-order.dto';
 import { UpdateOrderDto } from './dto/update-order.dto';
 import { ApiBearerAuth } from '@nestjs/swagger';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { Request } from 'express';
 
 @ApiBearerAuth('access-token')
 @UseGuards(JwtAuthGuard)
@@ -33,8 +35,12 @@ export class OrdersController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.ordersService.findOne(+id);
+  findOne(@Req() req: Request, @Param('id') id: string) {
+    return this.ordersService.findOne(
+      +id,
+      req.user?.id,
+      req.user?.role,
+    );
   }
 
   @Patch(':id')

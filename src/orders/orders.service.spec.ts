@@ -29,7 +29,7 @@ describe('OrdersService', () => {
     coupon: { update: jest.Mock };
   };
   let emailService: { sendEmail: jest.Mock };
-  let paymentService: { createPaymentIntent: jest.Mock };
+  let paymentService: { createPaymentIntentForOrder: jest.Mock };
   let couponService: { validateCoupon: jest.Mock };
 
   const PRODUCT = {
@@ -107,7 +107,7 @@ describe('OrdersService', () => {
 
     emailService = { sendEmail: jest.fn().mockResolvedValue(undefined) };
     paymentService = {
-      createPaymentIntent: jest.fn().mockResolvedValue({}),
+      createPaymentIntentForOrder: jest.fn().mockResolvedValue({}),
     };
     couponService = { validateCoupon: jest.fn() };
 
@@ -210,6 +210,19 @@ describe('OrdersService', () => {
       const [args] = tx.order.create.mock.calls[0] as [{ data: object }];
       expect(args.data).not.toHaveProperty('simulation_mode');
       expect(args.data).not.toHaveProperty('sale_type');
+    });
+
+    it('mantém o pedido criado quando a preparação do pagamento falha', async () => {
+      paymentService.createPaymentIntentForOrder.mockRejectedValueOnce(
+        new Error('Stripe indisponível'),
+      );
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+
+      await expect(service.create(baseDto as never)).resolves.toMatchObject({
+        orders: [{ id: 1 }],
+      });
+
+      consoleSpy.mockRestore();
     });
   });
 });

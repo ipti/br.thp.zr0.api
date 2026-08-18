@@ -86,9 +86,26 @@ export class TransformationWorkshopProductBffService {
             product: {
               connect: { id: addProductTransformationWorkshopDto.product_fk },
             },
-            quantity: 0,
+            quantity: addProductTransformationWorkshopDto.quantity,
           },
         });
+
+        if (addProductTransformationWorkshopDto.quantity > 0) {
+          await transaction.inventory_entry.create({
+            data: {
+              inventory: {
+                connect: {
+                  transformation_workshop_fk_product_fk: {
+                    transformation_workshop_fk:
+                      addProductTransformationWorkshopDto.tw_fk,
+                    product_fk: addProductTransformationWorkshopDto.product_fk,
+                  },
+                },
+              },
+              quantity: addProductTransformationWorkshopDto.quantity,
+            },
+          });
+        }
 
         await transaction.production_capacity.upsert({
           where: {
@@ -111,9 +128,13 @@ export class TransformationWorkshopProductBffService {
           update: {},
         });
 
-        return transformationWorkshopProduct;
+        return {
+          ...transformationWorkshopProduct,
+          quantity: addProductTransformationWorkshopDto.quantity,
+        };
       });
     } catch (err) {
+      if (err instanceof HttpException) throw err;
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
   }

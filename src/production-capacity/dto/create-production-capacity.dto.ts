@@ -1,5 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsNotEmpty, IsNumber, IsOptional } from 'class-validator';
+import { IsBoolean, IsInt, IsNotEmpty, IsNumber, IsOptional, Min } from 'class-validator';
 
 export class CreateProductionCapacityDto {
   @IsNotEmpty()
@@ -14,6 +14,8 @@ export class CreateProductionCapacityDto {
 
   @IsNotEmpty()
   @IsNumber()
+  @IsInt()
+  @Min(1)
   @ApiProperty()
   monthlyCapacity: number;
 

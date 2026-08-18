@@ -296,6 +296,7 @@ model production {
   transformation_workshop_fk Int
   transformation_workshop    transformation_workshop @relation(fields: [transformation_workshop_fk], references: [id])
   quantity                   Int
+  produced_quantity          Int                     @default(0)
   date_start                 DateTime?
   date_end                   DateTime?
   status                     String?

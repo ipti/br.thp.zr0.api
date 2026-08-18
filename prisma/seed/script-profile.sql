@@ -37,6 +37,7 @@ INSERT INTO page_permission (profileId, page, `create`, `read`, `update`, `delet
 (2, 'transformation-workshop/create', 0, 0, 0, 0),
 (2, 'transformation-workshop/member', 1, 1, 1, 1),
 (2, 'transformation-workshop/orders', 1, 1, 1, 1),
+(2, 'transformation-workshop/production', 1, 1, 1, 0),
 (2, 'transformation-workshop/one', 1, 1, 1, 1),
 (2, 'transformation-workshop/product', 1, 1, 1, 1),
 (2, 'transformation-workshop/update', 1, 1, 1, 1),
@@ -61,6 +62,7 @@ INSERT INTO page_permission (profileId, page, `create`, `read`, `update`, `delet
 (3, 'transformation-workshop/create', 0, 0, 0, 0),
 (3, 'transformation-workshop/member', 1, 1, 1, 1),
 (3, 'transformation-workshop/orders', 1, 1, 1, 1),
+(3, 'transformation-workshop/production', 1, 1, 1, 0),
 (3, 'transformation-workshop/one', 1, 1, 1, 1),
 (3, 'transformation-workshop/product', 0, 1, 1, 0),
 (3, 'transformation-workshop/update', 0, 0, 0, 0),
@@ -80,27 +82,30 @@ INSERT INTO page_permission (profileId, page, `create`, `read`, `update`, `delet
 INSERT INTO menu_item (profileId, label, link, icon, `order`) VALUES
 (1, 'Oficinas de Transformações', '/seller/transformation-workshop', 'pi pi-home', 1),
 (1, 'Pedidos da OT', '/seller/transformation-workshop/orders', 'pi pi-receipt', 2),
-(1, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-shopping-bag', 3),
-(1, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 4),
-(1, 'Categorias', '/seller/category', 'pi pi-tag', 5),
-(1, 'Produtos', '/seller/product', 'pi pi-server', 6),
-(1, 'Produtos Cancelados', '/seller/canceled-orders', 'pi pi-times-circle', 7),
-(1, 'Usuários', '/seller/user', 'pi pi-users', 8);
+(1, 'Produção da OT', '/seller/transformation-workshop/production', 'pi pi-cog', 3),
+(1, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-shopping-bag', 4),
+(1, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 5),
+(1, 'Categorias', '/seller/category', 'pi pi-tag', 6),
+(1, 'Produtos', '/seller/product', 'pi pi-server', 7),
+(1, 'Produtos Cancelados', '/seller/canceled-orders', 'pi pi-times-circle', 8),
+(1, 'Usuários', '/seller/user', 'pi pi-users', 9);
 
 
 -- SELLER_MANAGER
 INSERT INTO menu_item (profileId, label, link, icon, `order`) VALUES
 (2, 'Oficinas de Transformações', '/seller/transformation-workshop', 'pi pi-home', 1),
 (2, 'Pedidos da OT', '/seller/transformation-workshop/orders', 'pi pi-receipt', 2),
-(2, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-shopping-bag', 3),
-(2, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 4),
-(2, 'Usuários', '/seller/user', 'pi pi-users', 5);
+(2, 'Produção da OT', '/seller/transformation-workshop/production', 'pi pi-cog', 3),
+(2, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-shopping-bag', 4),
+(2, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 5),
+(2, 'Usuários', '/seller/user', 'pi pi-users', 6);
 
 
 
 INSERT INTO menu_item (profileId, label, link, icon, `order`) VALUES
 (3, 'Oficinas de Transformações', '/seller/transformation-workshop', 'pi pi-home', 1),
 (3, 'Pedidos da OT', '/seller/transformation-workshop/orders', 'pi pi-receipt', 2),
-(3, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-shopping-bag', 3),
-(3, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 4);
+(3, 'Produção da OT', '/seller/transformation-workshop/production', 'pi pi-cog', 3),
+(3, 'Produtos da OT', '/seller/transformation-workshop/product', 'pi pi-shopping-bag', 4),
+(3, 'Membros da OT', '/seller/transformation-workshop/member', 'pi pi-users', 5);
 

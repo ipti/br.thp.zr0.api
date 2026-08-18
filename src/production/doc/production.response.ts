@@ -23,6 +23,12 @@ export class ProductionResponse {
     @ApiProperty()
     quantity: number;
 
+    @ApiProperty({ description: 'Quantidade já produzida' })
+    produced_quantity: number;
+
+    @ApiProperty({ enum: ['QUEUED', 'IN_PROGRESS', 'DONE', 'CANCELLED'] })
+    production_status: string;
+
     @IsNotEmpty()
     @ApiProperty()
     idProduct: number;

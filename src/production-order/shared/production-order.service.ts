@@ -483,7 +483,10 @@ export class ProductionOrderService {
         data: { order_fk: order.id },
       });
 
-      return order;
+      return {
+        message: 'Pedido de encomenda criado com sucesso!',
+        orders: [{ id: order.id, uid: order.uid }],
+      };
     });
   }
 }

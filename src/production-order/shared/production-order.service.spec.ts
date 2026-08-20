@@ -419,6 +419,10 @@ describe('ProductionOrderService', () => {
       });
 
       expect(order).toBeDefined();
+      expect(order).toEqual({
+        message: 'Pedido de encomenda criado com sucesso!',
+        orders: [{ id: 1, uid: 'ZR-202608-ABCDEF12' }],
+      });
       const [orderCreateArgs] = tx.order.create.mock.calls[0] as [
         { data: { sale_type: string } },
       ];

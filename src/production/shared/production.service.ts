@@ -72,7 +72,7 @@ export class ProductionService {
         createdAt: true,
         updatedAt: true,
       };
-      const filters: Prisma.productionWhereInput = isEmpty(rest)
+      const queryFilters: Prisma.productionWhereInput = isEmpty(rest)
         ? {}
         : {
             ...(rest.id !== undefined ? { id: Number(rest.id) } : {}),
@@ -100,6 +100,36 @@ export class ProductionService {
                 }
               : {}),
           };
+      const filters: Prisma.productionWhereInput = {
+        ...queryFilters,
+        AND: [
+          {
+            OR: [
+              { production_status: null },
+              { production_status: { not: 'CANCELLED' } },
+            ],
+          },
+          {
+            OR: [
+              { order_item_fk: null },
+              {
+                order_item: {
+                  is: {
+                    order_service: {
+                      is: {
+                        status: {
+                          notIn: ['CANCELLED', 'SOLITED_CANCELLATION'],
+                        },
+                        order: { is: { payment_status: 'PAID' } },
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      };
 
       const [data, total] = await Promise.all([
         this.prisma.production.findMany({
@@ -123,6 +153,7 @@ export class ProductionService {
                         id: true,
                         uid: true,
                         sale_type: true,
+                        payment_status: true,
                         createdAt: true,
                         user: { select: { id: true, name: true } },
                       },

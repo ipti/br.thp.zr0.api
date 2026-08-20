@@ -153,9 +153,19 @@ export class UserBffService {
               id: true,
               uid: true,
               createdAt: true,
+              total_amount: true,
               payment_status: true,
+              payment_method: true,
+              sale_type: true,
               order_services: {
+                orderBy: { id: 'asc' },
                 include: {
+                  transformation_workshop: {
+                    select: {
+                      id: true,
+                      name: true,
+                    },
+                  },
                   order_item: {
                     include: {
                       product: {

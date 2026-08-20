@@ -77,7 +77,47 @@ describe('ProductionService - progresso da produção', () => {
 
     expect(prismaMock.production.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: { transformation_workshop_fk: 1 },
+        where: expect.objectContaining({ transformation_workshop_fk: 1 }),
+      }),
+    );
+  });
+
+  it('lista somente pedidos pagos e com remessas ativas, preservando produções internas', async () => {
+    const { service, prismaMock } = setup();
+
+    await service.findAll({ page: 1, limit: 100 });
+
+    expect(prismaMock.production.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          AND: [
+            {
+              OR: [
+                { production_status: null },
+                { production_status: { not: 'CANCELLED' } },
+              ],
+            },
+            {
+              OR: [
+                { order_item_fk: null },
+                {
+                  order_item: {
+                    is: {
+                      order_service: {
+                        is: {
+                          status: {
+                            notIn: ['CANCELLED', 'SOLITED_CANCELLATION'],
+                          },
+                          order: { is: { payment_status: 'PAID' } },
+                        },
+                      },
+                    },
+                  },
+                },
+              ],
+            },
+          ],
+        }),
       }),
     );
   });

@@ -1,23 +1,26 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsNotEmpty,
-  IsNumber,
-  IsOptional
-} from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsInt, IsNotEmpty, Min } from 'class-validator';
 
 export class AddProductTransformationWorkshopDto {
   @IsNotEmpty()
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   @ApiProperty()
-  product_fk?: number;
+  product_fk: number;
 
   @IsNotEmpty()
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   @ApiProperty()
-  tw_fk?: number;
+  tw_fk: number;
 
   @IsNotEmpty()
-  @IsNumber()
+  @Type(() => Number)
+  @IsInt()
+  @Min(0)
   @ApiProperty()
   quantity: number;
 }

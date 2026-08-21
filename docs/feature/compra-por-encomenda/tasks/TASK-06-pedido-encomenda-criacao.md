@@ -3,9 +3,17 @@
 ## Metadados
 
 - **Prioridade:** P0
-- **Status:** Não iniciada
+- **Status:** Concluída
 - **Dependências:** TASK-05 (Checkout do Pedido de Encomenda com lock de concorrência)
 - **Bloqueia:** TASK-09 (Testes e validação end-to-end)
+
+## Nota de execução
+
+Implementado conforme especificado. `ProductionOrderService.create(dto)` revalida a `production_reservation` de cada fatia dentro da própria `tx` (falha com `HttpException(400)` sem criar nenhum registro parcial se ausente/expirada), cria `order` (`sale_type: 'ENCOMENDA'`), `order_delivery_address` opcional, um `order_service` por OT com `estimated_ready_at`/`estimated_delivery_at`, um `order_item` por fatia e um `production` por `order_item` (`QUEUED`, `order_item_fk` preenchido, `date_end` = `estimated_ready_at` da reserva, sem recalcular), e vincula as reservas consumidas ao pedido (`order_fk`). `payment.service.ts#updateOrderStatus` agora ramifica por `order.sale_type`: `ENCOMENDA` → `IN_PRODUCTION`, `PRONTA_ENTREGA` → `CONFIRMED` (regressão coberta por teste). `orders.service.ts` não foi tocado.
+
+Duas correções pontuais em relação ao desenho original: `CreateProductionOrderShipmentDto` ganhou `estimatedDeliveryAt?` opcional (informativo, não recalculado no servidor, já que prazo de transporte não é um recurso escasso como capacidade de produção) para popular `order_service.estimated_delivery_at`; e `total_amount` do pedido é calculado apenas como `unitPrice * quantity` (sem frete), documentado aqui como simplificação assumida.
+
+13 testes unitários (`production-order.service.spec.ts`, cobrindo simulate/reserve/create) + 2 testes de regressão em `payment.service.spec.ts` (ENCOMENDA→IN_PRODUCTION, PRONTA_ENTREGA→CONFIRMED) — todos passando. Lint (`npx eslint` escopado aos arquivos tocados) limpo. Build (`npm run build`) limpo. `git diff --stat` confirma alteração real restrita aos arquivos previstos.
 
 > **Nota de escopo:** a versão anterior desta tarefa alterava `OrdersService.create()` (`src/orders/orders.service.ts`) para agrupar por `workshop:saleType` e criar remessas mistas dentro de um único pedido. Isso foi descartado: `orders.service.ts` **não é tocado por esta tarefa** — continua servindo exclusivamente o Pedido de Pronta Entrega, sem nenhuma mudança de agrupamento (TASK-02 já cobre os ajustes necessários ali). A criação do Pedido de Encomenda ganha um método próprio, `POST /production-order`, inteiramente dentro do módulo novo criado na TASK-04.
 

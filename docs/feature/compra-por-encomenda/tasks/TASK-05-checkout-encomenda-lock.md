@@ -3,9 +3,11 @@
 ## Metadados
 
 - **Prioridade:** P0
-- **Status:** Não iniciada
+- **Status:** Concluída
 - **Dependências:** TASK-04 (endpoint de simulação do Pedido de Encomenda)
 - **Bloqueia:** TASK-06 (Criação do Pedido de Encomenda)
+
+> **Nota de execução:** `ProductionQueueService` (TASK-03) foi ajustado para aceitar um client Prisma opcional (`PrismaService | Prisma.TransactionClient`) em `getQueueTail`/`getActiveCapacity`/`finishDateFor`, default `this.prisma` — permite que `reserve()` passe o `tx` da transação corrente sem duplicar a lógica de fila. Validado manualmente contra o MySQL de dev (fora da suíte automatizada, já que mocks de Prisma não reproduzem lock de linha real): duas transações concorrentes com `SELECT ... FOR UPDATE` no mesmo par serializaram corretamente (segunda esperou ~723ms pela primeira, que segurou o lock por ~800ms).
 
 > **Nota de escopo:** a versão anterior desta tarefa evoluía `CheckoutService.reserveStock` (`src/checkout/checkout.service.ts`) para aceitar fatias mistas de estoque e produção. Isso foi descartado: a reserva de capacidade de produção vive inteiramente no **módulo novo `production-order`** (TASK-04), **sem tocar `checkout.service.ts`** — o lock de concorrência para `stock_reservation`/`inventory` (Pronta Entrega) é escopo da TASK-02, aplicado de forma independente.
 

@@ -9,7 +9,7 @@ import { UpdateCartItemDto } from '../dto/update-cart-item.dto';
 
 @Injectable()
 export class CartService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
 
   async create(createCartDto: CreateCartDto) {
     try {
@@ -48,7 +48,7 @@ export class CartService {
   async findAll(query) {
     try {
       const selectInfo = {
-        id: true
+        id: true,
       };
       const filters = isEmpty(query) ? {} : { ...query };
 
@@ -107,7 +107,9 @@ export class CartService {
           id,
         },
         data: {
-          customer: { connect: { id: updateCartDto.idCustomer ?? cart.customer_fk! } },
+          customer: {
+            connect: { id: updateCartDto.idCustomer ?? cart.customer_fk! },
+          },
           items: updateCartDto.items
             ? {
                 deleteMany: {},
@@ -174,25 +176,26 @@ export class CartService {
   }
 
   async addItem(userId: number, item: CreateCartItemDto) {
-    let cart = await this.prisma.cart.findFirst({
-      where: { customer: { user_fk: userId } },
-    });
-
-    if (!cart) {
-      const customer = await this.prisma.customer.findFirst({
+    // Contas antigas e usuários criados por fluxos administrativos podem não
+    // ter o perfil de customer. O primeiro uso do carrinho repara essa relação
+    // e cria o carrinho de forma idempotente.
+    const cart = await this.prisma.$transaction(async (tx) => {
+      const customer = await tx.customer.upsert({
         where: { user_fk: userId },
+        update: {},
+        create: {
+          user: { connect: { id: userId } },
+        },
       });
 
-      if (!customer) {
-        throw new HttpException('Customer not found', HttpStatus.NOT_FOUND);
-      }
-
-      cart = await this.prisma.cart.create({
-        data: {
+      return tx.cart.upsert({
+        where: { customer_fk: customer.id },
+        update: {},
+        create: {
           customer: { connect: { id: customer.id } },
         },
       });
-    }
+    });
 
     const existing = await this.prisma.cartItem.findFirst({
       where: {
@@ -218,7 +221,9 @@ export class CartService {
         cart: { connect: { id: cart.id } },
         product: { connect: { id: item.productId } },
         quantity: item.quantity,
-        ...(item.variantId ? { variant: { connect: { id: item.variantId } } } : {}),
+        ...(item.variantId
+          ? { variant: { connect: { id: item.variantId } } }
+          : {}),
       },
       include: {
         product: { include: { product_image: true } },

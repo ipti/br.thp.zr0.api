@@ -32,6 +32,7 @@ model users {
   stock_reservation            stock_reservation[]
   product_review               product_review[]
   wishlist_item                wishlist_item[]
+  production_reservation       production_reservation[]
 }
 
 model customer {
@@ -105,12 +106,16 @@ model transformation_workshop {
   inventory                       inventory[]
   order_service                   order_service[]
   stock_reservation               stock_reservation[]
+  production_capacity             production_capacity[]
+  production_reservation          production_reservation[]
 }
 
 model transformation_workshop_product {
   id                         Int                      @id @default(autoincrement())
   createdAt                  DateTime                 @default(now())
   updatedAt                  DateTime                 @updatedAt
+  /// @deprecated Nao escrever mais neste campo; fonte de verdade do estoque agora e `inventory`.
+  /// Ver docs/feature/compra-por-encomenda/historia-tecnica.md
   quantity                   Int
   transformation_workshop    transformation_workshop? @relation(fields: [transformation_workshop_fk], references: [id])
   transformation_workshop_fk Int?
@@ -191,6 +196,8 @@ model product {
   stock_reservation               stock_reservation[]
   product_review                  product_review[]
   wishlist_item                   wishlist_item[]
+  production_capacity             production_capacity[]
+  production_reservation          production_reservation[]
 }
 
 model product_image {
@@ -202,23 +209,26 @@ model product_image {
 }
 
 model order {
-  id                     Int                     @id @default(autoincrement())
-  uid                    String                  @unique
+  id                     Int                      @id @default(autoincrement())
+  uid                    String                   @unique
   user_fk                Int
-  user                   users                   @relation(fields: [user_fk], references: [id])
-  total_amount           Float                   @default(0)
-  notes                  String?                 @db.VarChar(500)
-  payment_status         PaymentStatus           @default(PENDING)
+  user                   users                    @relation(fields: [user_fk], references: [id])
+  total_amount           Float                    @default(0)
+  notes                  String?                  @db.VarChar(500)
+  payment_status         PaymentStatus            @default(PENDING)
   payment_method         PaymentMethod?
-  payment_intent_id      String?                 @unique
-  discount_amount        Float                   @default(0)
+  payment_intent_id      String?                  @unique
+  discount_amount        Float                    @default(0)
   coupon_fk              Int?
-  coupon                 coupon?                 @relation(fields: [coupon_fk], references: [id])
+  coupon                 coupon?                  @relation(fields: [coupon_fk], references: [id])
   order_delivery_address order_delivery_address?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
+  sale_type              SaleType                 @default(PRONTA_ENTREGA)
+  simulation_mode        SimulationMode?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
   order_services         order_service[]
   stock_reservation      stock_reservation[]
+  production_reservation production_reservation[]
 }
 
 model order_service {
@@ -230,6 +240,8 @@ model order_service {
   total_amount               Float                    @default(0)
   tracking_code              String?
   tracking_carrier           String?
+  estimated_ready_at         DateTime?
+  estimated_delivery_at      DateTime?
   createdAt                  DateTime                 @default(now())
   updatedAt                  DateTime                 @updatedAt
 
@@ -274,6 +286,7 @@ model order_item {
   updatedAt        DateTime       @updatedAt
   order_service    order_service? @relation(fields: [order_service_fk], references: [id])
   order_service_fk Int?
+  production       production?
 }
 
 model production {
@@ -283,9 +296,13 @@ model production {
   transformation_workshop_fk Int
   transformation_workshop    transformation_workshop @relation(fields: [transformation_workshop_fk], references: [id])
   quantity                   Int
+  produced_quantity          Int                     @default(0)
   date_start                 DateTime?
   date_end                   DateTime?
   status                     String?
+  production_status          production_status?
+  order_item_fk              Int?                    @unique
+  order_item                 order_item?             @relation(fields: [order_item_fk], references: [id])
   createdAt                  DateTime                @default(now())
   updatedAt                  DateTime                @updatedAt
 }
@@ -356,6 +373,41 @@ model stock_reservation {
   @@index([expires_at])
 }
 
+model production_capacity {
+  transformation_workshop_fk Int
+  transformation_workshop    transformation_workshop @relation(fields: [transformation_workshop_fk], references: [id])
+  product_fk                 Int
+  product                    product                 @relation(fields: [product_fk], references: [id])
+  monthly_capacity           Int                     @default(0)
+  active                     Boolean                 @default(false)
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+
+  @@id([transformation_workshop_fk, product_fk])
+  @@unique([transformation_workshop_fk, product_fk])
+}
+
+model production_reservation {
+  id                         Int                     @id @default(autoincrement())
+  product_fk                 Int
+  product                    product                 @relation(fields: [product_fk], references: [id])
+  transformation_workshop_fk Int
+  transformation_workshop    transformation_workshop @relation(fields: [transformation_workshop_fk], references: [id])
+  quantity                   Int
+  user_fk                    Int
+  user                       users                   @relation(fields: [user_fk], references: [id])
+  expires_at                 DateTime
+  order_fk                   Int?
+  order                      order?                  @relation(fields: [order_fk], references: [id])
+  estimated_ready_at         DateTime
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
+
+  @@index([product_fk, transformation_workshop_fk])
+  @@index([user_fk])
+  @@index([expires_at])
+}
+
 model product_review {
   id         Int      @id @default(autoincrement())
   product_fk Int
@@ -384,17 +436,17 @@ model wishlist_item {
 }
 
 model coupon {
-  id              Int          @id @default(autoincrement())
-  code            String       @unique
+  id              Int        @id @default(autoincrement())
+  code            String     @unique
   discount_type   CouponType
   discount_value  Float
   min_order_value Float?
   max_uses        Int?
-  uses_count      Int          @default(0)
+  uses_count      Int        @default(0)
   expires_at      DateTime?
-  active          Boolean      @default(true)
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
+  active          Boolean    @default(true)
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
   order           order[]
 }
 
@@ -488,4 +540,21 @@ enum PaymentMethod {
 enum CouponType {
   PERCENT
   FIXED
+}
+
+enum SaleType {
+  PRONTA_ENTREGA
+  ENCOMENDA
+}
+
+enum SimulationMode {
+  COST
+  DEADLINE
+}
+
+enum production_status {
+  QUEUED
+  IN_PROGRESS
+  DONE
+  CANCELLED
 }

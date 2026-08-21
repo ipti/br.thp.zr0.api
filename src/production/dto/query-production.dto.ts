@@ -1,34 +1,54 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PaginationDto } from 'src/common/dto/pagination.dto';
-import { IsOptional } from 'class-validator';
+import { IsDateString, IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { production_status } from '@prisma/client';
+import { Type } from 'class-transformer';
 
 export class QueryProductionDto extends PaginationDto {
-    @IsOptional()
-    @ApiProperty({ description: "Production's id" })
-    id?: string;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @ApiPropertyOptional({ description: "Production's id" })
+  id?: number;
 
-    @IsOptional()
-    @ApiProperty()
-    dateStart?: string;
+  @IsOptional()
+  @IsDateString()
+  @ApiPropertyOptional()
+  dateStart?: string;
 
-    @IsOptional()
-    @ApiProperty()
-    dateEnd?: string;
+  @IsOptional()
+  @IsDateString()
+  @ApiPropertyOptional()
+  dateEnd?: string;
 
-    @IsOptional()
-    @ApiProperty()
-    status?: string;
+  @IsOptional()
+  @ApiProperty()
+  status?: string;
 
-    @IsOptional()
-    @ApiProperty()
-    quantity?: number;
+  @IsOptional()
+  @IsEnum(production_status)
+  @ApiProperty({ enum: production_status, required: false })
+  productionStatus?: production_status;
 
-    @IsOptional()
-    @ApiProperty()
-    idProduct?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @ApiPropertyOptional()
+  quantity?: number;
 
-    @IsOptional()
-    @ApiProperty()
-    idTransformationWorkshop?: number;
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @ApiPropertyOptional()
+  idProduct?: number;
 
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @ApiPropertyOptional()
+  idTransformationWorkshop?: number;
 }

@@ -11,15 +11,15 @@
 
 | Código | Tarefa | Prioridade | Dependência |
 |---|---|---:|---|
-| TASK-01 | Schema Prisma — sale_type no pedido, capacidade e fila de produção | P0 | Nenhuma |
-| TASK-02 | Migração do fluxo de Pronta Entrega para `inventory` | P0 | TASK-01 |
-| TASK-03 | Serviço de fila e capacidade de produção | P0 | TASK-01 |
-| TASK-04 | Endpoint de simulação do Pedido de Encomenda (custo x prazo) | P0 | TASK-03 |
-| TASK-05 | Checkout do Pedido de Encomenda com lock de concorrência | P0 | TASK-04 |
-| TASK-06 | Criação do Pedido de Encomenda | P0 | TASK-05 |
-| TASK-07 | Frete com dimensões reais do produto | P1 | Nenhuma |
-| TASK-08 | Cron de limpeza de reservas expiradas | P1 | TASK-02, TASK-05 |
-| TASK-09 | Testes e validação end-to-end dos dois fluxos | P0 | TASK-01 a TASK-08 |
+| TASK-01 | Schema Prisma — sale_type no pedido, capacidade e fila de produção | P0 | Nenhuma (**Concluída**) |
+| TASK-02 | Migração do fluxo de Pronta Entrega para `inventory` | P0 | TASK-01 (**Concluída**) |
+| TASK-03 | Serviço de fila e capacidade de produção | P0 | TASK-01 (**Concluída**) |
+| TASK-04 | Endpoint de simulação do Pedido de Encomenda (custo x prazo) | P0 | TASK-03 (**Concluída**) |
+| TASK-05 | Checkout do Pedido de Encomenda com lock de concorrência | P0 | TASK-04 (**Concluída**) |
+| TASK-06 | Criação do Pedido de Encomenda | P0 | TASK-05 (**Concluída**) |
+| TASK-07 | Frete com dimensões reais do produto | P1 | Nenhuma (**Concluída**) |
+| TASK-08 | Cron de limpeza de reservas expiradas | P1 | TASK-02, TASK-05 (**Concluída**) |
+| TASK-09 | Testes e validação end-to-end dos dois fluxos | P0 | TASK-01 a TASK-08 (**Concluída** — e2e com banco dedicado adiado, ver nota) |
 
 ## Fluxo de execução
 

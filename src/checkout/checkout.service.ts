@@ -1,9 +1,12 @@
 // checkout.service.ts
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 import { ShippingService } from '../shipping/shipping.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateOrderDto, CreateStockReservationDto } from './dto/create-checkout.dto';
+import {
+  CreateOrderDto,
+  CreateStockReservationDto,
+} from './dto/create-checkout.dto';
 import { CheckoutResult } from './entities/checkout.entity';
 
 @Injectable()
@@ -11,7 +14,7 @@ export class CheckoutService {
   constructor(
     private readonly shippingService: ShippingService,
     private readonly prisma: PrismaService,
-  ) { }
+  ) {}
 
   async processCheckout(dto: CreateOrderDto): Promise<CheckoutResult> {
     const productIds = dto.orderItems.map((i) => i.productId);
@@ -64,7 +67,10 @@ export class CheckoutService {
       },
     });
 
-    const uid = date.getFullYear().toString() + String(date.getMonth() + 1).padStart(2, '0') + String(order_list.length + 1).padStart(4, '0');
+    const uid =
+      date.getFullYear().toString() +
+      String(date.getMonth() + 1).padStart(2, '0') +
+      String(order_list.length + 1).padStart(4, '0');
 
     // Criação do pedido
     const order = await this.prisma.order.create({
@@ -73,10 +79,9 @@ export class CheckoutService {
         total_amount: total,
         payment_method: dto.paymentMethod,
         payment_status: 'PENDING',
-        uid: uid
+        uid: uid,
       },
     });
-
 
     return {
       orderId: order.id,
@@ -111,58 +116,77 @@ export class CheckoutService {
       where: { uid: { in: dto.items.map((item) => item.productId) } },
       select: { id: true, uid: true },
     });
-    const productMap = new Map(products.map((product) => [product.uid, product.id]));
+    const productMap = new Map(
+      products.map((product) => [product.uid, product.id]),
+    );
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
 
-    return this.prisma.$transaction(async (tx) => {
-      await tx.stock_reservation.deleteMany({
-        where: {
-          user_fk: dto.userId,
-          order_fk: null,
-        },
-      });
+    return this.prisma.$transaction(
+      async (tx) => {
+        await tx.stock_reservation.deleteMany({
+          where: {
+            user_fk: dto.userId,
+            order_fk: null,
+          },
+        });
 
-      for (const item of dto.items) {
-        const productId = productMap.get(item.productId);
-        if (!productId) {
-          throw new Error(`Product ${item.productId} not found`);
+        for (const item of dto.items) {
+          const productId = productMap.get(item.productId);
+          if (!productId) {
+            throw new HttpException(
+              `Product ${item.productId} not found`,
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+
+          // Trava a linha de inventory do par (workshop, produto) antes de ler a
+          // disponibilidade, para que duas reservas concorrentes para o mesmo par
+          // nunca leiam "disponível" antes de qualquer uma commitar (corrige o
+          // overselling possível hoje, sem nenhum lock).
+          await tx.$queryRaw`SELECT quantity FROM inventory WHERE transformation_workshop_fk = ${item.workshopId} AND product_fk = ${productId} FOR UPDATE`;
+
+          const stock = await tx.inventory.findUnique({
+            where: {
+              transformation_workshop_fk_product_fk: {
+                transformation_workshop_fk: item.workshopId,
+                product_fk: productId,
+              },
+            },
+          });
+
+          const reserved = await tx.stock_reservation.aggregate({
+            _sum: { quantity: true },
+            where: {
+              product_fk: productId,
+              transformation_workshop_fk: item.workshopId,
+              expires_at: { gt: new Date() },
+            },
+          });
+
+          const reservedQuantity = reserved._sum.quantity ?? 0;
+          const availableQuantity = (stock?.quantity ?? 0) - reservedQuantity;
+
+          if (!stock || availableQuantity < item.quantity) {
+            throw new HttpException(
+              `Insufficient stock for product ${item.productId}`,
+              HttpStatus.BAD_REQUEST,
+            );
+          }
+
+          await tx.stock_reservation.create({
+            data: {
+              product: { connect: { id: productId } },
+              transformation_workshop: { connect: { id: item.workshopId } },
+              user: { connect: { id: dto.userId } },
+              quantity: item.quantity,
+              expires_at: expiresAt,
+            },
+          });
         }
 
-        const stock = await tx.transformation_workshop_product.findFirst({
-          where: {
-            transformation_workshop_fk: item.workshopId,
-            product_fk: productId,
-          },
-        });
-
-        const reserved = await tx.stock_reservation.aggregate({
-          _sum: { quantity: true },
-          where: {
-            product_fk: productId,
-            transformation_workshop_fk: item.workshopId,
-            expires_at: { gt: new Date() },
-          },
-        });
-
-        const reservedQuantity = reserved._sum.quantity ?? 0;
-        const availableQuantity = (stock?.quantity ?? 0) - reservedQuantity;
-
-        if (!stock || availableQuantity < item.quantity) {
-          throw new Error(`Insufficient stock for product ${item.productId}`);
-        }
-
-        await tx.stock_reservation.create({
-          data: {
-            product: { connect: { id: productId } },
-            transformation_workshop: { connect: { id: item.workshopId } },
-            user: { connect: { id: dto.userId } },
-            quantity: item.quantity,
-            expires_at: expiresAt,
-          },
-        });
-      }
-
-      return { expiresAt };
-    });
+        return { expiresAt };
+      },
+      { maxWait: 5000, timeout: 10000 },
+    );
   }
 }

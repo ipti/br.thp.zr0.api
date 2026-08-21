@@ -1,4 +1,13 @@
 import { PaymentMethod } from '@prisma/client';
+import { Type } from 'class-transformer';
+import {
+  ArrayMinSize,
+  IsArray,
+  IsInt,
+  IsUUID,
+  Min,
+  ValidateNested,
+} from 'class-validator';
 
 // dto/create-order.dto.ts
 export class CreateOrderDto {
@@ -12,11 +21,30 @@ export class CreateOrderDto {
   paymentMethod: PaymentMethod;
 }
 
+export class StockReservationItemDto {
+  @IsUUID()
+  productId: string;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  workshopId: number;
+
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  quantity: number;
+}
+
 export class CreateStockReservationDto {
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
   userId: number;
-  items: {
-    productId: string;
-    workshopId: number;
-    quantity: number;
-  }[];
+
+  @IsArray()
+  @ArrayMinSize(1)
+  @ValidateNested({ each: true })
+  @Type(() => StockReservationItemDto)
+  items: StockReservationItemDto[];
 }

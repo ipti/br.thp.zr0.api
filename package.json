@@ -7,6 +7,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "seed": "ts-node --transpile-only prisma/seed/seed.ts",
+    "migrate:capacity-backfill": "ts-node --transpile-only prisma/seed/backfill-production-capacity.ts",
+    "migrate:inventory-backfill": "ts-node --transpile-only prisma/scripts/backfill-inventory-from-tw-product.ts",
     "build": "nest build && npm run copy:templates",
     "copy:templates": "copyfiles -u 4 src/utils/middleware/resources/*.hbs dist/src/utils/middleware/resources/",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -34,6 +36,7 @@
     "@nestjs/jwt": "^11.0.0",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/schedule": "^6.1.3",
     "@nestjs/swagger": "github:nestjs/swagger",
     "@prisma/client": "^6.6.0",
     "@willsoto/nestjs-prometheus": "^6.0.2",
@@ -92,6 +95,9 @@
     "testRegex": ".*\\.spec\\.ts$",
     "transform": {
       "^.+\\.(t|j)s$": "ts-jest"
+    },
+    "moduleNameMapper": {
+      "^src/(.*)$": "<rootDir>/$1"
     },
     "collectCoverageFrom": [
       "**/*.(t|j)s"

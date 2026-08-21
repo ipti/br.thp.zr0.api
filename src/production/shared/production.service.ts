@@ -5,20 +5,48 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { isEmpty } from 'class-validator';
 import { QueryProductionDto } from '../dto/query-production.dto';
 import { Prisma } from '@prisma/client';
+import { ProductionQueueService } from './production-queue.service';
 
 @Injectable()
 export class ProductionService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly productionQueueService: ProductionQueueService,
+  ) {}
   async create(createProductionDto: CreateProductionDto) {
     try {
+      const producedQuantity = createProductionDto.producedQuantity ?? 0;
+      if (producedQuantity > createProductionDto.quantity) {
+        throw new HttpException(
+          'A quantidade produzida não pode ser maior que a quantidade planejada',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const dateStart = createProductionDto.dateStart
+        ? new Date(createProductionDto.dateStart)
+        : new Date();
+      const dateEnd = createProductionDto.dateEnd
+        ? new Date(createProductionDto.dateEnd)
+        : await this.productionQueueService.finishDateFor(
+            createProductionDto.idTransformationWorkshop,
+            createProductionDto.idProduct,
+            createProductionDto.quantity,
+          );
+
       const createProduction = await this.prisma.production.create({
         data: {
           quantity: createProductionDto.quantity,
-          date_start: createProductionDto.dateStart,
-          date_end: createProductionDto.dateEnd,
-          status: createProductionDto.status,
+          produced_quantity: producedQuantity,
+          date_start: dateStart,
+          date_end: dateEnd,
+          production_status:
+            producedQuantity === createProductionDto.quantity
+              ? 'DONE'
+              : (createProductionDto.productionStatus ?? 'QUEUED'),
           product: { connect: { id: createProductionDto.idProduct } },
-          transformation_workshop: { connect: { id: createProductionDto.idTransformationWorkshop } },
+          transformation_workshop: {
+            connect: { id: createProductionDto.idTransformationWorkshop },
+          },
         },
       });
 
@@ -38,9 +66,13 @@ export class ProductionService {
         date_start: true,
         date_end: true,
         status: true,
+        production_status: true,
         quantity: true,
+        produced_quantity: true,
+        createdAt: true,
+        updatedAt: true,
       };
-      const filters: Prisma.productionWhereInput = isEmpty(rest)
+      const queryFilters: Prisma.productionWhereInput = isEmpty(rest)
         ? {}
         : {
             ...(rest.id !== undefined ? { id: Number(rest.id) } : {}),
@@ -51,24 +83,88 @@ export class ProductionService {
               ? { date_end: new Date(rest.dateEnd) }
               : {}),
             ...(rest.status !== undefined ? { status: rest.status } : {}),
-            ...(rest.quantity !== undefined ? { quantity: rest.quantity } : {}),
+            ...(rest.productionStatus !== undefined
+              ? { production_status: rest.productionStatus }
+              : {}),
+            ...(rest.quantity !== undefined
+              ? { quantity: Number(rest.quantity) }
+              : {}),
             ...(rest.idProduct !== undefined
-              ? { product_fk: rest.idProduct }
+              ? { product_fk: Number(rest.idProduct) }
               : {}),
             ...(rest.idTransformationWorkshop !== undefined
               ? {
-                  transformation_workshop_fk:
+                  transformation_workshop_fk: Number(
                     rest.idTransformationWorkshop,
+                  ),
                 }
               : {}),
           };
+      const filters: Prisma.productionWhereInput = {
+        ...queryFilters,
+        AND: [
+          {
+            OR: [
+              { production_status: null },
+              { production_status: { not: 'CANCELLED' } },
+            ],
+          },
+          {
+            OR: [
+              { order_item_fk: null },
+              {
+                order_item: {
+                  is: {
+                    order_service: {
+                      is: {
+                        status: {
+                          notIn: ['CANCELLED', 'SOLITED_CANCELLATION'],
+                        },
+                        order: { is: { payment_status: 'PAID' } },
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          },
+        ],
+      };
 
       const [data, total] = await Promise.all([
         this.prisma.production.findMany({
           skip,
           take: limit,
-          select: { ...selectInfo, product: true, transformation_workshop: true },
+          select: {
+            ...selectInfo,
+            product: true,
+            transformation_workshop: true,
+            order_item: {
+              select: {
+                id: true,
+                order_service: {
+                  select: {
+                    id: true,
+                    uid: true,
+                    status: true,
+                    estimated_ready_at: true,
+                    order: {
+                      select: {
+                        id: true,
+                        uid: true,
+                        sale_type: true,
+                        payment_status: true,
+                        createdAt: true,
+                        user: { select: { id: true, name: true } },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
           where: filters,
+          orderBy: [{ production_status: 'asc' }, { date_end: 'asc' }],
         }),
         this.prisma.production.count({ where: filters }),
       ]);
@@ -94,6 +190,17 @@ export class ProductionService {
   async findOne(id: number) {
     const production = await this.prisma.production.findUnique({
       where: { id: id },
+      include: {
+        product: true,
+        transformation_workshop: true,
+        order_item: {
+          include: {
+            order_service: {
+              include: { order: { include: { user: true } } },
+            },
+          },
+        },
+      },
     });
 
     if (!production) {
@@ -107,9 +214,25 @@ export class ProductionService {
     try {
       const production = await this.findOne(id);
 
-      if (!production) {
-        throw new HttpException('Production not found', HttpStatus.NOT_FOUND);
+      const quantity = updateProductionDto.quantity ?? production.quantity;
+      const producedQuantity =
+        updateProductionDto.producedQuantity ?? production.produced_quantity;
+
+      if (producedQuantity > quantity) {
+        throw new HttpException(
+          'A quantidade produzida não pode ser maior que a quantidade planejada',
+          HttpStatus.BAD_REQUEST,
+        );
       }
+
+      const productionStatus =
+        producedQuantity === quantity
+          ? 'DONE'
+          : updateProductionDto.productionStatus === 'CANCELLED'
+            ? 'CANCELLED'
+            : producedQuantity > 0
+              ? 'IN_PROGRESS'
+              : 'QUEUED';
 
       const updatedProduction = await this.prisma.production.update({
         where: {
@@ -118,15 +241,37 @@ export class ProductionService {
         data: {
           date_start: updateProductionDto.dateStart,
           date_end: updateProductionDto.dateEnd,
-          quantity: updateProductionDto.quantity,
-          status: updateProductionDto.status,
-          product: { connect: { id: updateProductionDto.idProduct ?? production.product_fk! } },
-          transformation_workshop: { connect: { id: updateProductionDto.idTransformationWorkshop ?? production.transformation_workshop_fk! } },
+          quantity,
+          produced_quantity: producedQuantity,
+          production_status: productionStatus,
+          product: {
+            connect: {
+              id: updateProductionDto.idProduct ?? production.product_fk,
+            },
+          },
+          transformation_workshop: {
+            connect: {
+              id:
+                updateProductionDto.idTransformationWorkshop ??
+                production.transformation_workshop_fk,
+            },
+          },
         },
       });
 
+      if (
+        production.order_item?.order_service?.id &&
+        ['IN_PROGRESS', 'DONE'].includes(productionStatus)
+      ) {
+        await this.prisma.order_service.update({
+          where: { id: production.order_item.order_service.id },
+          data: { status: 'IN_PRODUCTION' },
+        });
+      }
+
       return updatedProduction;
     } catch (err) {
+      if (err instanceof HttpException) throw err;
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
   }

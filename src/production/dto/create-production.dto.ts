@@ -1,43 +1,51 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
-    IsNotEmpty,
-    IsNumber,
-    IsOptional,
-    IsDateString,
-    IsString,
-    MaxLength
+  IsDateString,
+  IsEnum,
+  IsInt,
+  IsNotEmpty,
+  IsNumber,
+  IsOptional,
+  Min,
 } from 'class-validator';
+import { production_status } from '@prisma/client';
 
 export class CreateProductionDto {
+  @IsOptional()
+  @IsDateString()
+  @ApiPropertyOptional()
+  dateStart?: string;
 
-    @IsOptional()
-    @IsDateString()
-    @ApiProperty()
-    dateStart: string;
+  @IsOptional()
+  @IsDateString()
+  @ApiPropertyOptional()
+  dateEnd?: string;
 
-    @IsOptional()
-    @IsDateString()
-    @ApiProperty()
-    dateEnd: string;
+  @IsOptional()
+  @IsEnum(production_status)
+  @ApiPropertyOptional({ enum: production_status, default: 'QUEUED' })
+  productionStatus?: production_status;
 
-    @IsNotEmpty()
-    @IsString()
-    @MaxLength(191)
-    @ApiProperty()
-    status: string;
+  @IsNotEmpty()
+  @IsNumber()
+  @IsInt()
+  @Min(1)
+  @ApiProperty()
+  quantity: number;
 
-    @IsNotEmpty()
-    @IsNumber()
-    @ApiProperty()
-    quantity: number;
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @ApiPropertyOptional({ default: 0 })
+  producedQuantity?: number;
 
-    @IsNotEmpty()
-    @IsNumber()
-    @ApiProperty()
-    idProduct: number;
+  @IsNotEmpty()
+  @IsNumber()
+  @ApiProperty()
+  idProduct: number;
 
-    @IsNotEmpty()
-    @IsNumber()
-    @ApiProperty()
-    idTransformationWorkshop: number;
+  @IsNotEmpty()
+  @IsNumber()
+  @ApiProperty()
+  idTransformationWorkshop: number;
 }

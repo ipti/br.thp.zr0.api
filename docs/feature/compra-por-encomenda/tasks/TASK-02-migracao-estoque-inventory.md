@@ -3,9 +3,11 @@
 ## Metadados
 
 - **Prioridade:** P0
-- **Status:** Não iniciada
+- **Status:** Concluída
 - **Dependências:** TASK-01 (Schema Prisma — tabelas/enums novos)
 - **Bloqueia:** Nenhuma
+
+> **Nota de execução:** `npm run test` falha em todas as 12 suítes do projeto (não só as tocadas aqui) com `Cannot find module 'src/prisma/prisma.service'` — problema pré-existente de configuração do Jest (path alias `src/` não mapeado para o resolver), já antecipado nesta task como limitação das specs atuais. Fora de escopo corrigir aqui. `npm run build` e o lint dos 5 arquivos alterados passam sem novos erros.
 
 > **Nota de escopo:** esta tarefa não bloqueia mais nenhuma outra. Na versão anterior deste desenho, ela era pré-requisito da "onda 1" dentro de um algoritmo de simulação combinado. Com a separação em dois pedidos independentes, o Pedido de Encomenda (TASK-03 a TASK-06) **nunca consulta `inventory`** — os dois fluxos evoluem em paralelo, sem dependência entre si.
 

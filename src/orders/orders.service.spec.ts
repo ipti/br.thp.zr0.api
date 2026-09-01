@@ -128,6 +128,31 @@ describe('OrdersService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('findOne', () => {
+    it('inclui as imagens dos produtos nos detalhes do pedido', async () => {
+      await service.findOne(1, 1, 'USER');
+
+      expect(prisma.order.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          include: expect.objectContaining({
+            order_services: {
+              include: expect.objectContaining({
+                order_item: {
+                  include: {
+                    product: {
+                      include: { product_image: true },
+                    },
+                    variant: true,
+                  },
+                },
+              }),
+            },
+          }),
+        }),
+      );
+    });
+  });
+
   describe('create (Pronta Entrega)', () => {
     const baseDto = {
       userId: 1,

@@ -447,7 +447,9 @@ export class OrdersService {
           include: {
             order_item: {
               include: {
-                product: true,
+                product: {
+                  include: { product_image: true },
+                },
                 variant: true,
               },
             },

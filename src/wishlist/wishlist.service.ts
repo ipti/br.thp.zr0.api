@@ -49,7 +49,7 @@ export class WishlistService {
   }
 
   async list(userId: number) {
-    return this.prisma.wishlist_item.findMany({
+    const items = await this.prisma.wishlist_item.findMany({
       where: { user_fk: userId, product: { deletedAt: null } },
       orderBy: { createdAt: 'desc' },
       include: {
@@ -61,6 +61,43 @@ export class WishlistService {
         },
       },
     });
+
+    const productIds = items.map((item) => item.product.id);
+
+    const [inventoryAgg, reservedAgg] = productIds.length
+      ? await Promise.all([
+          this.prisma.inventory.groupBy({
+            by: ['product_fk'],
+            where: { product_fk: { in: productIds } },
+            _sum: { quantity: true },
+          }),
+          this.prisma.stock_reservation.groupBy({
+            by: ['product_fk'],
+            where: {
+              product_fk: { in: productIds },
+              expires_at: { gt: new Date() },
+            },
+            _sum: { quantity: true },
+          }),
+        ])
+      : [[], []];
+
+    const inventoryByProduct = new Map(
+      inventoryAgg.map((item) => [item.product_fk, item._sum.quantity ?? 0]),
+    );
+    const reservedByProduct = new Map(
+      reservedAgg.map((item) => [item.product_fk, item._sum.quantity ?? 0]),
+    );
+
+    return items.map((item) => ({
+      ...item,
+      product: {
+        ...item.product,
+        quantity:
+          (inventoryByProduct.get(item.product.id) ?? 0) -
+          (reservedByProduct.get(item.product.id) ?? 0),
+      },
+    }));
   }
 
   async check(userId: number, productUid: string) {

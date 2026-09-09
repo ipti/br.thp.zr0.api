@@ -138,6 +138,33 @@ export class ProductsService {
       this.prisma.product.count({ where: filters }),
     ]);
 
+    const productIds = data.map((product) => product.id);
+
+    const [inventoryAgg, reservedAgg] = productIds.length
+      ? await Promise.all([
+          this.prisma.inventory.groupBy({
+            by: ['product_fk'],
+            where: { product_fk: { in: productIds } },
+            _sum: { quantity: true },
+          }),
+          this.prisma.stock_reservation.groupBy({
+            by: ['product_fk'],
+            where: {
+              product_fk: { in: productIds },
+              expires_at: { gt: new Date() },
+            },
+            _sum: { quantity: true },
+          }),
+        ])
+      : [[], []];
+
+    const inventoryByProduct = new Map(
+      inventoryAgg.map((item) => [item.product_fk, item._sum.quantity ?? 0]),
+    );
+    const reservedByProduct = new Map(
+      reservedAgg.map((item) => [item.product_fk, item._sum.quantity ?? 0]),
+    );
+
     return {
       data: data.map((product) => {
         const reviewCount = product.product_review.length;
@@ -146,11 +173,15 @@ export class ProductsService {
             reviewCount
           : 0;
         const { product_review, ...rest } = product;
+        const quantity =
+          (inventoryByProduct.get(product.id) ?? 0) -
+          (reservedByProduct.get(product.id) ?? 0);
 
         return {
           ...rest,
           reviewCount,
           averageRating,
+          quantity,
         };
       }),
       pagination: {

@@ -16,7 +16,8 @@ describe('OrdersService', () => {
     users: { findUnique: jest.Mock };
     cart: { findFirst: jest.Mock };
     cartItem: { deleteMany: jest.Mock };
-    order: { findUnique: jest.Mock };
+    order: { findUnique: jest.Mock; update: jest.Mock };
+    order_service: { findMany: jest.Mock; update: jest.Mock };
     $transaction: jest.Mock;
   };
   let tx: {
@@ -85,8 +86,10 @@ describe('OrdersService', () => {
         findUnique: jest.fn().mockResolvedValue({
           id: 1,
           uid: 'ZR-1',
+          user_fk: 1,
           total_amount: 100,
           payment_method: 'PIX',
+          payment_status: 'PENDING',
           order_delivery_address: null,
           order_services: [
             {
@@ -101,6 +104,11 @@ describe('OrdersService', () => {
             },
           ],
         }),
+        update: jest.fn().mockResolvedValue({}),
+      },
+      order_service: {
+        findMany: jest.fn().mockResolvedValue([]),
+        update: jest.fn().mockResolvedValue({}),
       },
       $transaction: jest.fn((fn: (tx: unknown) => unknown) => fn(tx)),
     };
@@ -248,6 +256,53 @@ describe('OrdersService', () => {
       });
 
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe('update (alterar forma de pagamento)', () => {
+    it('atualiza payment_method e zera payment_intent_id quando o pedido está pendente', async () => {
+      await service.update(1, { payment_method: 'BANK_SLIP' } as never, 1, 'CUSTOMER');
+
+      expect(prisma.order.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 1 },
+          data: expect.objectContaining({
+            payment_method: 'BANK_SLIP',
+            payment_intent_id: null,
+          }),
+        }),
+      );
+    });
+
+    it('rejeita a troca de forma de pagamento se o pedido já não está pendente/falho', async () => {
+      prisma.order.findUnique.mockResolvedValueOnce({
+        id: 1,
+        user_fk: 1,
+        payment_status: 'PAID',
+        order_services: [],
+      });
+
+      await expect(
+        service.update(1, { payment_method: 'BANK_SLIP' } as never, 1, 'CUSTOMER'),
+      ).rejects.toThrow(HttpException);
+      expect(prisma.order.update).not.toHaveBeenCalled();
+    });
+
+    it('rejeita a troca de forma de pagamento de um pedido de outro usuário', async () => {
+      await expect(
+        service.update(1, { payment_method: 'BANK_SLIP' } as never, 999, 'CUSTOMER'),
+      ).rejects.toThrow(HttpException);
+      expect(prisma.order.update).not.toHaveBeenCalled();
+    });
+
+    it('permite que um ADMIN altere a forma de pagamento de qualquer pedido', async () => {
+      await service.update(1, { payment_method: 'CREDIT_CARD' } as never, 999, 'ADMIN');
+
+      expect(prisma.order.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ payment_method: 'CREDIT_CARD' }),
+        }),
+      );
     });
   });
 });

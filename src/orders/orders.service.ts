@@ -471,7 +471,12 @@ export class OrdersService {
     return order;
   }
 
-  async update(id: number, updateOrderDto: UpdateOrderDto) {
+  async update(
+    id: number,
+    updateOrderDto: UpdateOrderDto,
+    requesterId?: number,
+    requesterRole?: string,
+  ) {
     try {
       // Verifica se o pedido existe
       const existingOrder = await this.prisma.order.findUnique({
@@ -557,12 +562,41 @@ export class OrdersService {
         }
       }
 
+      if (updateOrderDto.payment_method) {
+        if (
+          requesterId !== undefined &&
+          existingOrder.user_fk !== requesterId &&
+          requesterRole !== 'ADMIN'
+        ) {
+          throw new HttpException(
+            'Você não pode alterar o pagamento deste pedido',
+            HttpStatus.FORBIDDEN,
+          );
+        }
+
+        if (!['PENDING', 'FAILED'].includes(existingOrder.payment_status)) {
+          throw new HttpException(
+            'Não é possível alterar a forma de pagamento deste pedido',
+            HttpStatus.CONFLICT,
+          );
+        }
+      }
+
       // Atualiza os outros dados do pedido (opcional)
       const updatedOrder = await this.prisma.order.update({
         where: { id },
         data: {
           notes: updateOrderDto.observation,
           payment_status: updateOrderDto.payment_status,
+          ...(updateOrderDto.payment_method
+            ? {
+                payment_method: updateOrderDto.payment_method,
+                // Uma intenção de pagamento já criada é presa a um tipo
+                // (pix/boleto/card) no Stripe; zera para que a próxima
+                // consulta gere uma nova intenção com o tipo correto.
+                payment_intent_id: null,
+              }
+            : {}),
           updatedAt: new Date(),
         },
         include: {

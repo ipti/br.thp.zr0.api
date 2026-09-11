@@ -5,11 +5,17 @@ import { UsersService } from 'src/users/shared/users.service';
 import { EmailService } from 'src/utils/middleware/email.middleware';
 import { AuxUserController } from './aux_user_bff.controller';
 import { AuxUserBffService } from './shared/aux_user_bff.service';
+import { ResendVerificationThrottleGuard } from './guards/resend-verification-throttle.guard';
 
 @Module({
-  imports: [PrismaModule, forwardRef(() => AuthModule), ],
+  imports: [PrismaModule, forwardRef(() => AuthModule)],
   controllers: [AuxUserController],
-  providers: [AuxUserBffService, EmailService, UsersService],
+  providers: [
+    AuxUserBffService,
+    EmailService,
+    UsersService,
+    ResendVerificationThrottleGuard,
+  ],
   exports: [AuxUserBffService],
 })
 export class AuxUserBffModule {}

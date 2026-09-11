@@ -9,6 +9,9 @@ import { EmailService } from 'src/utils/middleware/email.middleware';
 
 @Injectable()
 export class AuxUserBffService {
+  private readonly resendVerificationMessage =
+    'Se existir uma conta não verificada para este e-mail, enviaremos uma nova confirmação.';
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly usersService: UsersService,
@@ -30,6 +33,31 @@ export class AuxUserBffService {
     } catch (err) {
       throw new HttpException(err, HttpStatus.BAD_REQUEST);
     }
+  }
+
+  async resendVerificationEmail(email: string) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await this.prisma.users.findFirst({
+      where: { email: normalizedEmail, deletedAt: null },
+    });
+
+    // A resposta é sempre genérica para não revelar quais e-mails possuem conta.
+    if (!user || user.verify_email) {
+      return { message: this.resendVerificationMessage };
+    }
+
+    const token = await this.authService.generateToken(user);
+    const site = process.env.SITE?.replace(/\/+$/, '') ?? '';
+    const verificationLink = `${site}/auth/verify-email?token=${token.access_token}`;
+
+    await this.emailService.sendEmail(
+      user.email,
+      'Verificação de email',
+      'verifyEmail.hbs',
+      { verificationLink, name: user.name },
+    );
+
+    return { message: this.resendVerificationMessage };
   }
 
   async recoveryPassword(

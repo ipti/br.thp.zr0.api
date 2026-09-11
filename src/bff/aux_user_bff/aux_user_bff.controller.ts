@@ -1,9 +1,20 @@
-import { Body, Controller, Put, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Post,
+  Put,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { ApiBearerAuth, ApiCreatedResponse, ApiTags } from '@nestjs/swagger';
 import { Request } from 'express';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { RecoveryPasswordDto } from './dto/recovery_password_user.dto';
 import { SendEmailRecoveryPasswordDto } from './dto/send_email _recovery_password_user.dto';
+import { ResendVerificationEmailDto } from './dto/resend_verification_email.dto';
+import { ResendVerificationThrottleGuard } from './guards/resend-verification-throttle.guard';
 import { AuxUserBffService } from './shared/aux_user_bff.service';
 
 @ApiTags('Aux-User')
@@ -17,6 +28,13 @@ export class AuxUserController {
   @UseGuards(JwtAuthGuard)
   async verifyEmail(@Req() req: Request) {
     return this.auxUserBffService.verifyEmail(req.user?.id ?? 1);
+  }
+
+  @Post('resend-verification-email')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(ResendVerificationThrottleGuard)
+  async resendVerificationEmail(@Body() body: ResendVerificationEmailDto) {
+    return this.auxUserBffService.resendVerificationEmail(body.email);
   }
 
   @Put('recovery-password')
